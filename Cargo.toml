@@ -1,0 +1,16 @@
+[package]
+name = "ttbackend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-graphql = { version = "7.0.6", features = ["log"] }
+async-graphql-axum = "7.0.6"
+axum = { version = "0.7.5", features = ["tracing"] }
+tokio = { version = "1.38.0", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["trace"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[dev-dependencies]
+tokio-test = "0.4.4"
