@@ -18,3 +18,10 @@ This command installes the latest stable toolchain for your native target triple
 ## How to test
 
 - ```cargo test```
+
+## How create migrations
+
+- ```cargo install sqlx-cli```
+
+- ```sqlx migrate add create_example_table```
+This command creates a .sql file in the migrations folder which will automatically migrated by start of the application
