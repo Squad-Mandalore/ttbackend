@@ -108,7 +108,7 @@ async fn main() {
     println!("Query result: {:?}", delete_results);
 
     //funktion gehen auch
-    get_all_users(db);
+    get_all_users(db).await;
 
     // build our application with a single route
     let app = Router::new().route(
