@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 use chrono::{prelude::*, Duration};
 
-
 pub fn create_timestamp() -> String {
     let now: DateTime<Utc> = Utc::now();
     now.to_rfc3339()
@@ -24,8 +23,6 @@ fn format_duration(duration: Duration) -> String {
 
     format!("P{}DT{}H{}M{}S", days, hours, minutes, seconds)
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -85,7 +82,6 @@ mod tests {
         // Then: An error is returned
         assert!(result.is_err());
     }
-
 
     #[test]
     fn test_calculate_difference_invalid_end() {
