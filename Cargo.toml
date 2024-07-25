@@ -7,6 +7,7 @@ edition = "2021"
 async-graphql = { version = "7.0.6", features = ["log"] }
 async-graphql-axum = "7.0.6"
 axum = { version = "0.7.5", features = ["tracing"] }
+chrono = "0.4.38"
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = "0.1.40"
