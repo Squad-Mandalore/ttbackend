@@ -5,7 +5,10 @@ use axum::{
     routing::get,
     Router,
 };
-use ttbackend::{graphql::create_schema, tracing_setup::setup_tracing};
+use ttbackend::{
+    graphql::create_schema,
+    tracing_setup::{remove_old_logfiles, setup_tracing},
+};
 
 async fn graphql_playground() -> impl IntoResponse {
     response::Html(playground_source(GraphQLPlaygroundConfig::new("/")))
@@ -15,6 +18,7 @@ async fn graphql_playground() -> impl IntoResponse {
 async fn main() {
     // setup tracing
     let _guard = setup_tracing();
+    let _ = remove_old_logfiles().await;
 
     // build our application with a single route
     let app = Router::new().route(
