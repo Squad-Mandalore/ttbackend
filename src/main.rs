@@ -5,8 +5,7 @@ use axum::{
     routing::get,
     Router,
 };
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use ttbackend::graphql::create_schema;
+use ttbackend::{graphql::create_schema, tracing_setup::setup_tracing};
 
 async fn graphql_playground() -> impl IntoResponse {
     response::Html(playground_source(GraphQLPlaygroundConfig::new("/")))
@@ -14,12 +13,8 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    // setup tracing
+    let _guard = setup_tracing();
 
     // build our application with a single route
     let app = Router::new().route(
