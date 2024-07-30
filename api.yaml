@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: Time Tracking API
+  description: API of the Time Tracking Service for Schmidt's Handwerksbetrieb
+  version: 0.1.0
+  contact:
+    name: Squad Mandalore
+    url: https://github.com/Squad-Mandalore
+
+tags:
+  - name: auth
+  - name: resource
+
+servers:
+  - url: https://example.com
+    description: Production
+  - url: http://localhost
+    description: Debug
+
+paths:
+  /login:
+    post:
+      tags:
+        - auth
+      operationId: postLogin
+      description: Uses Email and Password to Authenticate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '200':
+          description: Seccessful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+  /refresh:
+    get:
+      tags:
+        - auth
+      operationId:
+      description: Uses Email and Password to Authenticate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: Seccessful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+  schemas:
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+    Token:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+      required:
+        - access_token
+        - refresh_token
+
