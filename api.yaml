@@ -32,7 +32,7 @@ paths:
               $ref: '#/components/schemas/Login'
       responses:
         '200':
-          description: Seccessful Response
+          description: Successful Response
           content:
             application/json:
               schema:
@@ -41,8 +41,8 @@ paths:
     get:
       tags:
         - auth
-      operationId:
-      description: Uses Email and Password to Authenticate
+      operationId: postRefresh
+      description: Refresh expired access token with a valid refresh token
       requestBody:
         required: true
         content:
@@ -56,11 +56,34 @@ paths:
                 - refresh_token
       responses:
         '200':
-          description: Seccessful Response
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Token'
+  /graphql:
+    post:
+      tags:
+        - resource
+      operationId: postGraphql
+      description: Endpoint for the GraphQL Queries
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLQuery'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
 components:
   securitySchemes:
@@ -70,6 +93,10 @@ components:
       bearerFormat: JWT
   responses:
     UnauthorizedError:
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
       description: Access token is missing or invalid
   schemas:
     Login:
@@ -92,4 +119,14 @@ components:
       required:
         - access_token
         - refresh_token
+    GraphQLQuery:
+      type: object
+      properties:
+        query:
+          type: string
+    GraphQLResponse:
+      type: object
+      properties:
+        data:
+          type: object
 
