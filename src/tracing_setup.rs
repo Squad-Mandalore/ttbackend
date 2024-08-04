@@ -6,8 +6,8 @@ use tokio::fs;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub fn setup_tracing() -> tracing_appender::non_blocking::WorkerGuard {
-    let log_directory = std::env::var("LOG_DIRECTORY").unwrap_or_else(|_| "./logs".to_string());
-    let log_file = std::env::var("LOG_FILE").unwrap_or_else(|_| "tracing.log".to_string());
+    let log_directory = std::env::var("LOG_DIRECTORY").unwrap_or_else(|_| String::from("./logs"));
+    let log_file = std::env::var("LOG_FILE").unwrap_or_else(|_| String::from("tracing.log"));
 
     let file_appender = tracing_appender::rolling::daily(&log_directory, &log_file);
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
@@ -24,9 +24,9 @@ pub fn setup_tracing() -> tracing_appender::non_blocking::WorkerGuard {
 }
 
 pub async fn remove_old_logfiles() -> Result<(), Box<dyn std::error::Error>> {
-    let log_directory = std::env::var("LOG_DIRECTORY").unwrap_or_else(|_| "./logs".to_string());
+    let log_directory = std::env::var("LOG_DIRECTORY").unwrap_or_else(|_| String::from("./logs"));
     tracing::debug!("Log directory: {:?}", log_directory);
-    let log_file = std::env::var("LOG_FILE").unwrap_or_else(|_| "tracing.log".to_string());
+    let log_file = std::env::var("LOG_FILE").unwrap_or_else(|_| String::from("tracing.log"));
     tracing::debug!("Log file: {:?}", log_file);
     let entries = fs::read_dir(&log_directory).await?;
 
