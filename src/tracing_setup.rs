@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chrono::{Duration, NaiveDate, Utc};
-use tokio::fs;
+use tokio::{fs, io};
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -23,7 +23,7 @@ pub fn setup_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     guard
 }
 
-pub async fn remove_old_logfiles() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn remove_old_logfiles() -> io::Result<()> {
     let log_directory = std::env::var("LOG_DIRECTORY").unwrap_or_else(|_| String::from("./logs"));
     tracing::debug!("Log directory: {:?}", log_directory);
     let log_file = std::env::var("LOG_FILE").unwrap_or_else(|_| String::from("tracing.log"));
@@ -35,7 +35,7 @@ pub async fn remove_old_logfiles() -> Result<(), Box<dyn std::error::Error>> {
     remove_old_files(files).await
 }
 
-async fn extract_date(log_file: &str, mut entries: fs::ReadDir) -> Result<Vec<(PathBuf, NaiveDate)>, Box<dyn std::error::Error>> {
+async fn extract_date(log_file: &str, mut entries: fs::ReadDir) -> io::Result<Vec<(PathBuf, NaiveDate)>> {
     let mut files: Vec<(PathBuf, NaiveDate)> = Vec::new();
 
     while let Some(entry) = entries.next_entry().await? {
@@ -70,7 +70,7 @@ async fn extract_date(log_file: &str, mut entries: fs::ReadDir) -> Result<Vec<(P
     Ok(files)
 }
 
-async fn remove_old_files(files: Vec<(PathBuf, NaiveDate)>) -> Result<(), Box<dyn std::error::Error>> {
+async fn remove_old_files(files: Vec<(PathBuf, NaiveDate)>) -> io::Result<()> {
     let today = Utc::now().date_naive();
     for (file_path, date) in files {
         if today.signed_duration_since(date) > Duration::days(30) {
@@ -88,7 +88,7 @@ mod tests {
     use tokio::fs::File;
 
     #[tokio::test]
-    async fn test_remove_old_logfiles() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_remove_old_logfiles() -> io::Result<()> {
         let log_file_name = String::from("tracing.log");
 
         let tmp_dir = tempdir()?;
