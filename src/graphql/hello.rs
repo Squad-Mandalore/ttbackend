@@ -1,10 +1,16 @@
 use async_graphql::Object;
 
-pub struct Query;
+pub struct Hello;
 
 #[Object]
-impl Query {
+impl Hello {
     async fn hello(&self) -> String {
         "world".to_string()
+    }
+}
+
+impl Default for Hello {
+    fn default() -> Self {
+        Hello
     }
 }
