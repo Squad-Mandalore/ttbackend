@@ -1,0 +1,134 @@
+openapi: 3.1.0
+info:
+  title: Time Tracking API
+  description: API of the Time Tracking Service for Schmidt's Handwerksbetrieb
+  version: 0.1.0
+  contact:
+    name: Squad Mandalore
+    url: https://github.com/Squad-Mandalore
+
+tags:
+  - name: auth
+  - name: resource
+
+servers:
+  - url: https://example.com
+    description: Production
+  - url: http://localhost
+    description: Debug
+
+paths:
+  /login:
+    post:
+      tags:
+        - auth
+      operationId: postLogin
+      description: Uses Email and Password to Authenticate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+  /refresh:
+    post:
+      tags:
+        - auth
+      operationId: postRefresh
+      description: Refresh expired access token with a valid refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+  /graphql:
+    post:
+      tags:
+        - resource
+      operationId: postGraphql
+      description: Endpoint for the GraphQL Queries
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLQuery'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    UnauthorizedError:
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+      description: Access token is missing or invalid
+  schemas:
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+    Token:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+      required:
+        - accessToken
+        - refreshToken
+    GraphQLQuery:
+      type: object
+      properties:
+        query:
+          type: string
+        variables:
+          type: object
+    GraphQLResponse:
+      type: object
+      properties:
+        data:
+          type: object
+
