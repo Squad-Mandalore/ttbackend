@@ -35,7 +35,10 @@ pub async fn remove_old_logfiles() -> io::Result<()> {
     remove_old_files(files).await
 }
 
-async fn extract_date(log_file: &str, mut entries: fs::ReadDir) -> io::Result<Vec<(PathBuf, NaiveDate)>> {
+async fn extract_date(
+    log_file: &str,
+    mut entries: fs::ReadDir,
+) -> io::Result<Vec<(PathBuf, NaiveDate)>> {
     let mut files: Vec<(PathBuf, NaiveDate)> = Vec::new();
 
     while let Some(entry) = entries.next_entry().await? {
@@ -100,31 +103,34 @@ mod tests {
 
         let today = Utc::now().date_naive();
 
-
         // Create an old log file (older than 30 days)
         let old_file_date = today - chrono::Duration::days(31);
-        let old_file_path = tmp_dir.path().join(format!("{}.{}", &log_file_name, old_file_date.format("%Y-%m-%d")));
+        let old_file_path = tmp_dir.path().join(format!(
+            "{}.{}",
+            &log_file_name,
+            old_file_date.format("%Y-%m-%d")
+        ));
         println!("Old file path: {:?}", old_file_path);
         let _ = File::create(&old_file_path).await?;
 
         // Create a new log file (newer than 30 days)
         let new_file_date = today - chrono::Duration::days(10);
-        let new_file_path = tmp_dir.path().join(format!("{}.{}", &log_file_name, new_file_date.format("%Y-%m-%d")));
+        let new_file_path = tmp_dir.path().join(format!(
+            "{}.{}",
+            &log_file_name,
+            new_file_date.format("%Y-%m-%d")
+        ));
         println!("New file path: {:?}", new_file_path);
         let _ = File::create(&new_file_path).await?;
-
 
         // Run the cleanup function
         println!("Running cleanup function");
         remove_old_logfiles().await?;
 
-
         // Check results
         assert!(!old_file_path.exists(), "Old file should be deleted");
         assert!(new_file_path.exists(), "New file should not be deleted");
 
-
         Ok(())
     }
 }
-
