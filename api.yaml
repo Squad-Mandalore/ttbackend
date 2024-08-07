@@ -38,7 +38,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Token'
   /refresh:
-    get:
+    post:
       tags:
         - auth
       operationId: postRefresh
@@ -50,10 +50,10 @@ paths:
             schema:
               type: object
               properties:
-                refresh_token:
+                refreshToken:
                   type: string
               required:
-                - refresh_token
+                - refreshToken
       responses:
         '200':
           description: Successful Response
@@ -112,18 +112,20 @@ components:
     Token:
       type: object
       properties:
-        access_token:
+        accessToken:
           type: string
-        refresh_token:
+        refreshToken:
           type: string
       required:
-        - access_token
-        - refresh_token
+        - accessToken
+        - refreshToken
     GraphQLQuery:
       type: object
       properties:
         query:
           type: string
+        variables:
+          type: object
     GraphQLResponse:
       type: object
       properties:
