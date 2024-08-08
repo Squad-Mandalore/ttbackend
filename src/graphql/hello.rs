@@ -5,7 +5,7 @@ pub struct Hello;
 #[Object]
 impl Hello {
     async fn hello(&self) -> String {
-        "world".to_string()
+        "hello".to_string()
     }
 }
 

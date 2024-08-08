@@ -1,10 +1,10 @@
 use async_graphql::{extensions::Logger, EmptyMutation, EmptySubscription, MergedObject, Schema};
 
 mod hello;
-mod logs;
+mod world;
 
 #[derive(MergedObject, Default)]
-pub struct Query(hello::Hello, logs::Logs);
+pub struct Query(hello::Hello, world::World);
 
 pub type SchemaType = Schema<Query, EmptyMutation, EmptySubscription>;
 
