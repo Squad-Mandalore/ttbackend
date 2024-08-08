@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use ttbackend::{
-    database::set_up_connection_pool, graphql::create_schema, tracing_setup::{remove_old_logfiles, setup_tracing}
+    database::set_up_database, graphql::create_schema, tracing_setup::{remove_old_logfiles, setup_tracing}
 };
 
 async fn graphql_playground() -> impl IntoResponse {
@@ -20,7 +20,7 @@ async fn main() {
     let _ = remove_old_logfiles().await;
 
     // setup database connection pool
-    let database_pool = set_up_connection_pool().await;
+    let database_pool = set_up_database().await;
 
     // build our application with a single route
     let app = Router::new().route(

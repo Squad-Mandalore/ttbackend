@@ -1,6 +1,8 @@
 # TTBackend
 
-## Rustup: the Rust installer and version management tool
+## Prerequisites
+
+### Rustup: the Rust installer and version management tool
 
 The primary way that folks install Rust is through a tool called Rustup, which is a Rust installer and version management tool.
 
@@ -10,6 +12,17 @@ Follow the instructions on [rust-lang](https://www.rust-lang.org/learn/get-start
 
 - ```rustup default stable```
 This command installes the latest stable toolchain for your native target triplet
+
+### Database: Postgres
+
+Install postgres on your system and create a database.
+The application uses dotenvy to get the environment varaibles.
+
+To add your database url do (never push your .env file):
+
+```
+echo DATABASE_URL=postgres://username:password@localhost/database_name > .env
+```
 
 ## How to run
 
