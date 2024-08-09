@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Time Tracking API
   description: API of the Time Tracking Service for Schmidt's Handwerksbetrieb
-  version: 0.1.0
+  version: 0.1.1
   contact:
     name: Squad Mandalore
     url: https://github.com/Squad-Mandalore
@@ -104,8 +104,10 @@ components:
       properties:
         email:
           type: string
+          format: email
         password:
           type: string
+          format: password
       required:
         - email
         - password
@@ -126,9 +128,44 @@ components:
           type: string
         variables:
           type: object
+      required:
+        - query
     GraphQLResponse:
       type: object
       properties:
         data:
+          type:
+            - object
+            - 'null'
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphQLError'
+      required:
+        - data
+    GraphQLError:
+      type: object
+      properties:
+        message:
+          type: string
+        location:
+          type: array
+          items:
+            type: object
+            properties:
+              line:
+                type: integer
+              column:
+                type: integer
+            required:
+              - line
+              - column
+        path:
+          type: array
+          items:
+            type: string
+        extensions:
           type: object
-
+      required:
+        - message
+        - location
