@@ -6,7 +6,9 @@ use axum::{
     Router,
 };
 use ttbackend::{
-    database::set_up_database, graphql::create_schema, tracing_setup::{remove_old_logfiles, setup_tracing}
+    database::set_up_database,
+    graphql::create_schema,
+    tracing_setup::{remove_old_logfiles, setup_tracing},
 };
 
 async fn graphql_playground() -> impl IntoResponse {

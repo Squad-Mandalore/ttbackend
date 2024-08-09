@@ -3,7 +3,8 @@ use std::time::Duration;
 use sqlx::{Pool, Postgres};
 
 pub async fn set_up_database() -> Pool<Postgres> {
-    let database_url = dotenvy::var("DATABASE_URL").expect("there is no .env file or no DATABASE_URL present");
+    let database_url =
+        dotenvy::var("DATABASE_URL").expect("there is no .env file or no DATABASE_URL present");
     let database_pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)
         .acquire_timeout(Duration::from_secs(3))
@@ -11,7 +12,10 @@ pub async fn set_up_database() -> Pool<Postgres> {
         .await
         .expect("can't connect to database");
 
-    sqlx::migrate!("./migrations").run(&database_pool).await.expect("cannot run migrations");
+    sqlx::migrate!("./migrations")
+        .run(&database_pool)
+        .await
+        .expect("cannot run migrations");
 
     database_pool
 }
