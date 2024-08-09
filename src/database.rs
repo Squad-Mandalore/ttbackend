@@ -6,7 +6,6 @@ pub async fn set_up_database() -> Pool<Postgres> {
     let database_url =
         dotenvy::var("DATABASE_URL").expect("there is no .env file or no DATABASE_URL present");
     let database_pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
         .acquire_timeout(Duration::from_secs(3))
         .connect(&database_url)
         .await
