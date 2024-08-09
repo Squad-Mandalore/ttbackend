@@ -1,0 +1,1 @@
+CREATE TYPE WORKTIME_TYPE AS ENUM ('Work', 'Break', 'Ride');

@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 use ttbackend::{
+    database::set_up_database,
     graphql::create_schema,
     tracing_setup::{remove_old_logfiles, setup_tracing},
 };
@@ -20,10 +21,13 @@ async fn main() {
     let _guard = setup_tracing();
     let _ = remove_old_logfiles().await;
 
+    // setup database connection pool
+    let database_pool = set_up_database().await;
+
     // build our application with a single route
     let app = Router::new().route(
         "/",
-        get(graphql_playground).post_service(GraphQL::new(create_schema())),
+        get(graphql_playground).post_service(GraphQL::new(create_schema(database_pool))),
     );
 
     // run our app with hyper, listening globally on port 3000
