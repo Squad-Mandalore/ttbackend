@@ -4,11 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql = { version = "7.0.6", features = ["log"] }
+async-graphql = { version = "7.0.7", features = ["chrono", "chrono-duration", "log"] }
 async-graphql-axum = "7.0.6"
 axum = { version = "0.7.5", features = ["tracing"] }
-chrono = "0.4.38"
+chrono = { version = "0.4.38", features = ["serde"] }
 dotenvy = "0.15.7"
+serde = { version = "1.0.205", features = ["derive"] }
 sqlx = { version = "0.8.0", features = ["runtime-tokio", "tls-native-tls", "postgres", "chrono"] }
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["trace"] }

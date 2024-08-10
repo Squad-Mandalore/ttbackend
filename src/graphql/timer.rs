@@ -22,3 +22,21 @@ impl Default for Timer {
         Timer
     }
 }
+
+pub struct TimerMutation;
+
+#[async_graphql::Object]
+impl TimerMutation {
+    async fn start_timer(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        employee_id: i32,
+        worktype: models::WorktimeType,
+    ) -> async_graphql::Result<models::Worktime> {
+        let pool = ctx.data::<sqlx::Pool<sqlx::Postgres>>()?;
+
+        worktime::start_timer(employee_id, worktype, pool)
+            .await
+            .map_err(|e| async_graphql::Error::new_with_source(e))
+    }
+}
