@@ -1,11 +1,11 @@
 use async_graphql::{extensions::Logger, EmptyMutation, EmptySubscription, MergedObject, Schema};
 use sqlx::{Pool, Postgres};
 
-mod hello;
+mod timer;
 mod world;
 
 #[derive(MergedObject, Default)]
-pub struct Query(hello::Hello, world::World);
+pub struct Query(timer::Timer, world::World);
 
 pub type SchemaType = Schema<Query, EmptyMutation, EmptySubscription>;
 
