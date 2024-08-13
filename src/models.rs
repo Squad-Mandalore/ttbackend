@@ -24,15 +24,15 @@ pub struct Worktime {
 
 #[async_graphql::ComplexObject]
 impl Worktime {
-    async fn timeduration(&self) -> String {
-        let mut months = 0;
-        let mut days = 0;
-        let mut seconds = 0;
-        if let Some(interval) = &self.timeduration {
-            months = interval.months;
-            days = interval.days;
-            seconds = (interval.microseconds as f64 / 1_000_000_f64).round() as i32
+    async fn timeduration(&self) -> Option<String> {
+        match &self.timeduration {
+            None => None,
+            Some(interval) => {
+                let months = interval.months;
+                let days = interval.days;
+                let seconds = interval.microseconds as f64 / 1_000_000_f64;
+                Some(format!("P{}M{}DT0H0M{}S", months, days, seconds))
+            },
         }
-        format!("P{}M{}DT0H0M{}S", months, days, seconds)
     }
 }

@@ -23,6 +23,8 @@ pub async fn get_timers(
 //
 #[cfg(test)]
 mod tests {
+    use sqlx::postgres::types::PgInterval;
+
     use super::*;
 
     #[sqlx::test(fixtures("../../fixtures/task.sql", "../../fixtures/address.sql", "../../fixtures/employee.sql", "../../fixtures/worktime.sql"))]
@@ -32,7 +34,12 @@ mod tests {
         assert_eq!(worktime.employee_id, 1);
         assert_eq!(worktime.task_id, 1);
         assert_eq!(worktime.work_type, Some(models::WorktimeType::Break));
-        assert_eq!(worktime.end_time, None);
+        assert_eq!(worktime.start_time.to_rfc3339(), "2024-01-01T08:00:00+00:00");
+        assert_ne!(worktime.end_time, None);
+        assert_eq!(worktime.end_time.unwrap().to_rfc3339(), "2024-01-01T16:00:00+00:00");
+        assert_ne!(worktime.timeduration, None);
+        let secs: u64 = 8 * 60 * 60;
+        assert_eq!(worktime.timeduration.clone().unwrap(), PgInterval::try_from(std::time::Duration::from_secs(secs)).unwrap());
 
         Ok(())
     }
