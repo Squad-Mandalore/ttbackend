@@ -1,8 +1,7 @@
 use sqlx::postgres::types;
 
-#[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq, Debug)]
-#[derive(sqlx::Type)]
-#[sqlx(rename_all = "lowercase")]
+#[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq, Debug, sqlx::Type)]
+#[sqlx(type_name = "worktime_type", rename_all = "lowercase")]
 pub enum WorktimeType {
     Break,
     Ride,
@@ -32,7 +31,7 @@ impl Worktime {
                 let days = interval.days;
                 let seconds = interval.microseconds as f64 / 1_000_000_f64;
                 Some(format!("P{}M{}DT0H0M{}S", months, days, seconds))
-            },
+            }
         }
     }
 }
