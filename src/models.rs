@@ -8,7 +8,7 @@ pub enum WorktimeType {
     Work,
 }
 
-#[derive(async_graphql::SimpleObject)]
+#[derive(async_graphql::SimpleObject, sqlx::FromRow)]
 #[graphql(complex)]
 pub struct Worktime {
     pub worktime_id: i32,
@@ -18,7 +18,7 @@ pub struct Worktime {
     pub end_time: Option<chrono::DateTime<chrono::Utc>>,
     #[graphql(skip)]
     pub timeduration: Option<types::PgInterval>,
-    pub work_type: Option<WorktimeType>,
+    pub work_type: WorktimeType,
 }
 
 #[async_graphql::ComplexObject]

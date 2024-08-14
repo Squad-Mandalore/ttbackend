@@ -1,3 +1,5 @@
+use sqlx::query_builder;
+
 use crate::models;
 
 pub async fn get_timers(
@@ -52,6 +54,66 @@ pub(crate) async fn stop_timer(
     .await
 }
 
+pub(crate) async fn update_timer(
+    worktime_id: i32,
+    task_id: Option<i32>,
+    start_time: Option<chrono::DateTime<chrono::Utc>>,
+    end_time: Option<chrono::DateTime<chrono::Utc>>,
+    worktype: Option<models::WorktimeType>,
+    pool: &sqlx::PgPool,
+) -> sqlx::Result<models::Worktime> {
+    let mut query_builder =
+        query_builder::QueryBuilder::<sqlx::Postgres>::new("UPDATE worktime SET ");
+
+    let mut needs_comma = false;
+
+    if let Some(task_id) = task_id {
+        if needs_comma {
+            query_builder.push(", ");
+        }
+        query_builder.push("task_id = ").push_bind(task_id);
+        needs_comma = true;
+    }
+
+    if let Some(start_time) = start_time {
+        if needs_comma {
+            query_builder.push(", ");
+        }
+        query_builder.push("start_time = ").push_bind(start_time);
+        needs_comma = true;
+    }
+
+    if let Some(end_time) = end_time {
+        if needs_comma {
+            query_builder.push(", ");
+        }
+        query_builder.push("end_time = ").push_bind(end_time);
+        needs_comma = true;
+    }
+
+    if let Some(worktype) = worktype {
+        if needs_comma {
+            query_builder.push(", ");
+        }
+        query_builder
+            .push("work_type = ")
+            .push_bind(worktype as models::WorktimeType);
+        needs_comma = true;
+    }
+
+    if !needs_comma {
+        return Err(sqlx::Error::RowNotFound); // No fields were provided to update
+    }
+
+    let query = query_builder
+        .push(" WHERE worktime_id = ")
+        .push_bind(worktime_id)
+        .push(" RETURNING worktime_id, employee_id, task_id, start_time, end_time, timeduration, work_type")
+        .build_query_as::<models::Worktime>();
+
+    query.fetch_one(pool).await
+}
+
 #[cfg(test)]
 mod tests {
     use sqlx::postgres::types::PgInterval;
@@ -84,7 +146,7 @@ mod tests {
             worktime.timeduration.clone().unwrap(),
             PgInterval::try_from(std::time::Duration::from_secs(secs)).unwrap()
         );
-        assert_eq!(worktime.work_type, Some(models::WorktimeType::Break));
+        assert_eq!(worktime.work_type, models::WorktimeType::Break);
 
         Ok(())
     }
@@ -101,7 +163,7 @@ mod tests {
         assert_eq!(worktime.task_id, 1);
         assert_eq!(worktime.end_time, None);
         assert_eq!(worktime.timeduration, None);
-        assert_eq!(worktime.work_type, Some(models::WorktimeType::Break));
+        assert_eq!(worktime.work_type, models::WorktimeType::Break);
 
         Ok(())
     }
@@ -119,7 +181,7 @@ mod tests {
         assert_eq!(worktime.task_id, 1);
         assert_ne!(worktime.end_time, None);
         assert_ne!(worktime.timeduration, None);
-        assert_eq!(worktime.work_type, Some(models::WorktimeType::Work));
+        assert_eq!(worktime.work_type, models::WorktimeType::Work);
 
         Ok(())
     }
