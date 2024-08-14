@@ -1,5 +1,6 @@
 use tokio::signal;
 
+pub mod auth;
 pub mod database;
 pub mod graphql;
 mod models;
