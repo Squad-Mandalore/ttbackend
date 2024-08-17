@@ -17,8 +17,8 @@ pub struct LoginRequest {
     password: String,
 }
 
-// TODO camel case on serde
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginResponse {
     access_token: String,
     refresh_token: String,
@@ -38,10 +38,10 @@ pub struct RefreshRequest {
     refresh_token: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Claims {
     sub: String,
-    exp: String,
+    exp: i64,
 }
 
 #[derive(Debug)]
@@ -103,11 +103,11 @@ pub async fn login(
 pub fn create_login_response(email: String) -> Result<LoginResponse, LoginError> {
     let acc_claims = Claims {
         sub: email.clone(),
-        exp: (Utc::now() + Duration::days(1)).to_rfc3339(),
+        exp: (Utc::now() + Duration::days(1)).timestamp(),
     };
     let ref_claims = Claims {
         sub: email.clone(),
-        exp: (Utc::now() + Duration::days(30)).to_rfc3339(),
+        exp: (Utc::now() + Duration::days(30)).timestamp(),
     };
 
     let access_token = encode(
