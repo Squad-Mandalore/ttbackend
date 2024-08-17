@@ -1,15 +1,16 @@
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql_axum::GraphQL;
 use axum::{
+    middleware,
     response::{self, IntoResponse},
     routing::{get, post, Route},
     Router,
 };
 use ttbackend::{
+    auth::{auth, login, refresh},
     database::set_up_database,
     graphql::create_schema,
     tracing_setup::{remove_old_logfiles, setup_tracing},
-    auth::{login, refresh},
 };
 
 async fn graphql_playground() -> impl IntoResponse {
@@ -29,7 +30,9 @@ async fn main() {
     let app = Router::new()
         .route(
             "/",
-            get(graphql_playground).post_service(GraphQL::new(create_schema(database_pool.clone()))),
+            get(graphql_playground)
+                .post_service(GraphQL::new(create_schema(database_pool.clone())))
+                .layer(middleware::from_fn(auth)),
         )
         .route("/login", post(login))
         .route("/refresh", post(refresh))
