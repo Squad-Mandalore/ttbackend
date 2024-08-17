@@ -1,6 +1,6 @@
 use axum::{
     extract::{Request, State},
-    http::StatusCode,
+    http::{header, HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
@@ -54,23 +54,35 @@ pub enum LoginError {
 
 impl IntoResponse for LoginError {
     fn into_response(self) -> Response {
-        let (status, error_message) = match self {
+        let (status, error_message, www_authenticate) = match self {
             LoginError::InvalidCredentials => {
-                (StatusCode::UNAUTHORIZED, "Invalid email or password")
-            }
+                (StatusCode::UNAUTHORIZED, "Invalid email or password", Some("Bearer realm=\"Application\", charset=\"UTF-8\""))
+            },
             LoginError::DatabaseError => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred",
+                None
             ),
+
             LoginError::MissingCredentials => {
-                (StatusCode::BAD_REQUEST, "Missing email or password")
+                (StatusCode::BAD_REQUEST, "Missing email or password", None)
             }
             LoginError::TokenCreation => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred while creating the token",
+                None
             ),
         };
-        (status, error_message).into_response()
+        let mut response = Response::new(error_message.into());
+        *response.status_mut() = status;
+        response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain; charset=utf-8"));
+        if let Some(authenticate) = www_authenticate {
+            response.headers_mut().insert(
+                header::WWW_AUTHENTICATE,
+                HeaderValue::from_static(authenticate),
+            );
+        }
+        response
     }
 }
 
@@ -158,7 +170,7 @@ pub async fn refresh(
     Ok(Json(logres))
 }
 
-pub async fn auth(mut request: Request, next: Next) -> Result<Response, StatusCode> {
+pub async fn auth(mut request: Request, next: Next) -> Result<Response, LoginError> {
     let auth_header = request
         .headers()
         .get(axum::http::header::AUTHORIZATION)
@@ -174,10 +186,10 @@ pub async fn auth(mut request: Request, next: Next) -> Result<Response, StatusCo
             ),
             &Validation::default(),
         )
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+        .map_err(|_| LoginError::InvalidCredentials)?;
         request.extensions_mut().insert(claims.claims.sub);
         Ok(next.run(request).await)
     } else {
-        Err(StatusCode::UNAUTHORIZED)
+        Err(LoginError::InvalidCredentials)
     }
 }
