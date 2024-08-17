@@ -1,9 +1,8 @@
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql_axum::GraphQL;
 use axum::{
     middleware,
     response::{self, IntoResponse},
-    routing::{get, post, Route},
+    routing::{get, post},
     Extension, Router,
 };
 use ttbackend::{
@@ -30,8 +29,8 @@ async fn main() {
     // build our application with a single route
     let app = Router::new()
         .route("/", post(graphql_handler).layer(middleware::from_fn(auth)))
-        .route("/playground", get(graphql_playground))
         .layer(Extension(schema))
+        .route("/playground", get(graphql_playground))
         .route("/login", post(login))
         .route("/refresh", post(refresh))
         .with_state(database_pool);
