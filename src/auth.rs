@@ -1,6 +1,6 @@
 use axum::{
     extract::{Request, State},
-    http::{request, StatusCode},
+    http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
@@ -8,15 +8,42 @@ use axum::{
 use chrono::{prelude::*, Duration};
 use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use sqlx::Error as SqlxError;
 use sqlx::PgPool;
 
 #[derive(Deserialize)]
-pub struct Payload {
+pub struct LoginRequest {
     email: String,
     password: String,
 }
+
+// TODO camel case on serde
+#[derive(Serialize)]
+pub struct LoginResponse {
+    access_token: String,
+    refresh_token: String,
+}
+
+impl LoginResponse {
+    fn new(access_token: String, refresh_token: String) -> Self {
+        Self {
+            access_token,
+            refresh_token,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct RefreshRequest {
+    refresh_token: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    exp: String,
+}
+
 #[derive(Debug)]
 pub enum LoginError {
     InvalidCredentials,
@@ -47,29 +74,9 @@ impl IntoResponse for LoginError {
     }
 }
 
-#[derive(Serialize)]
-pub struct LoginResponse {
-    access_token: String,
-    refresh_token: String,
-}
-impl LoginResponse {
-    fn new(access_token: String, refresh_token: String) -> Self {
-        Self {
-            access_token,
-            refresh_token,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    exp: String,
-}
-
 pub async fn login(
     State(pool): State<PgPool>,
-    Json(payload): Json<Payload>,
+    Json(payload): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, LoginError> {
     let email = payload.email;
     let password = payload.password;
@@ -82,8 +89,8 @@ pub async fn login(
         .fetch_one(&pool)
         .await
         .map_err(|err| match err {
-            SqlxError::RowNotFound => LoginError::InvalidCredentials, // Mapping auf InvalidCredentials
-            _ => LoginError::DatabaseError, // Mapping auf DatabaseError für alle anderen Fehler
+            SqlxError::RowNotFound => LoginError::InvalidCredentials,
+            _ => LoginError::DatabaseError,
         })?;
 
     if db_password != password {
@@ -127,11 +134,6 @@ pub fn create_login_response(email: String) -> Result<LoginResponse, LoginError>
     Ok(LoginResponse::new(access_token, refresh_token))
 }
 
-#[derive(Deserialize)]
-pub struct RefreshRequest {
-    refresh_token: String,
-}
-
 pub async fn refresh(
     Json(refresh_request): Json<RefreshRequest>,
 ) -> Result<Json<LoginResponse>, LoginError> {
@@ -159,7 +161,7 @@ pub async fn refresh(
 pub async fn auth(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     let auth_header = request
         .headers()
-        .get("Authorization")
+        .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok());
     if let Some(auth_header) = auth_header {
         let token = auth_header.replace("Bearer ", "");
