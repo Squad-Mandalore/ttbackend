@@ -4,12 +4,12 @@ use axum::{
     middleware,
     response::{self, IntoResponse},
     routing::{get, post, Route},
-    Router,
+    Extension, Router,
 };
 use ttbackend::{
     auth::{auth, login, refresh},
     database::set_up_database,
-    graphql::create_schema,
+    graphql::{create_schema, graphql_handler},
     shutdown_signal,
     tracing_setup::{remove_old_logfiles, setup_tracing},
 };
@@ -26,15 +26,12 @@ async fn main() {
 
     // setup database connection pool
     let database_pool = set_up_database().await;
-
+    let schema = create_schema(database_pool.clone());
     // build our application with a single route
     let app = Router::new()
-        .route(
-            "/",
-            get(graphql_playground)
-                .post_service(GraphQL::new(create_schema(database_pool.clone())))
-                .layer(middleware::from_fn(auth)),
-        )
+        .route("/", post(graphql_handler).layer(middleware::from_fn(auth)))
+        .route("/playground", get(graphql_playground))
+        .layer(Extension(schema))
         .route("/login", post(login))
         .route("/refresh", post(refresh))
         .with_state(database_pool);
