@@ -1,11 +1,16 @@
-
+use axum::{
+    extract::{Request, State},
+    http::{request, StatusCode},
+    middleware::Next,
+    response::{IntoResponse, Response},
+    Json,
+};
 use chrono::{prelude::*, Duration};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use axum::{extract::State, http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde_json::json;
-use sqlx::PgPool;
 use sqlx::Error as SqlxError;
+use sqlx::PgPool;
 
 #[derive(Deserialize)]
 pub struct Payload {
@@ -23,50 +28,49 @@ pub enum LoginError {
 impl IntoResponse for LoginError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            LoginError::InvalidCredentials => (
-                StatusCode::UNAUTHORIZED,
-                "Invalid email or password",
-            ),
+            LoginError::InvalidCredentials => {
+                (StatusCode::UNAUTHORIZED, "Invalid email or password")
+            }
             LoginError::DatabaseError => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred",
             ),
-            LoginError::MissingCredentials => (
-                StatusCode::BAD_REQUEST,
-                "Missing email or password",
-            ),
+            LoginError::MissingCredentials => {
+                (StatusCode::BAD_REQUEST, "Missing email or password")
+            }
             LoginError::TokenCreation => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred while creating the token",
             ),
         };
-        let body = Json(json!({ "error": error_message }));
-        (status, body).into_response()
+        (status, error_message).into_response()
     }
 }
 
 #[derive(Serialize)]
-pub struct AccessToken {
+pub struct LoginResponse {
     access_token: String,
     refresh_token: String,
 }
-impl AccessToken {
+impl LoginResponse {
     fn new(access_token: String, refresh_token: String) -> Self {
         Self {
             access_token,
             refresh_token,
         }
     }
-
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Claims {
     sub: String,
     exp: String,
 }
 
-pub async fn login(State(pool): State<PgPool>, Json(payload): Json<Payload>) -> Result<Json<AccessToken>, LoginError> {
+pub async fn login(
+    State(pool): State<PgPool>,
+    Json(payload): Json<Payload>,
+) -> Result<Json<LoginResponse>, LoginError> {
     let email = payload.email;
     let password = payload.password;
 
@@ -78,28 +82,100 @@ pub async fn login(State(pool): State<PgPool>, Json(payload): Json<Payload>) -> 
         .fetch_one(&pool)
         .await
         .map_err(|err| match err {
-          SqlxError::RowNotFound => LoginError::InvalidCredentials, // Mapping auf InvalidCredentials
-          _ => LoginError::DatabaseError,                            // Mapping auf DatabaseError für alle anderen Fehler
+            SqlxError::RowNotFound => LoginError::InvalidCredentials, // Mapping auf InvalidCredentials
+            _ => LoginError::DatabaseError, // Mapping auf DatabaseError für alle anderen Fehler
         })?;
 
     if db_password != password {
         return Err(LoginError::InvalidCredentials);
     }
 
-    let acc_claims = Claims {
-      sub: email.clone(),
-      exp: (Utc::now() + Duration::days(1)).to_rfc3339(),
-    };
-    let ref_claims = Claims {
-      sub: email.clone(),
-      exp: (Utc::now() + Duration::days(30)).to_rfc3339(),
-    };
-
-    let access_token = encode(&Header::default(), &acc_claims, &EncodingKey::from_secret(dotenvy::var("SECRET").expect("No secret was provided.").as_ref())).map_err(|_| LoginError::TokenCreation)?;
-    let refresh_token = encode(&Header::default(), &ref_claims, &EncodingKey::from_secret(dotenvy::var("SECRET").expect("No secret was provided.").as_ref())).map_err(|_| LoginError::TokenCreation)?;
-    Ok(Json(AccessToken::new(access_token, refresh_token)))
+    Ok(Json(create_login_response(email)?))
 }
 
-pub async fn refresh() {
-    // TODO
+pub fn create_login_response(email: String) -> Result<LoginResponse, LoginError> {
+    let acc_claims = Claims {
+        sub: email.clone(),
+        exp: (Utc::now() + Duration::days(1)).to_rfc3339(),
+    };
+    let ref_claims = Claims {
+        sub: email.clone(),
+        exp: (Utc::now() + Duration::days(30)).to_rfc3339(),
+    };
+
+    let access_token = encode(
+        &Header::default(),
+        &acc_claims,
+        &EncodingKey::from_secret(
+            dotenvy::var("SECRET")
+                .expect("No secret was provided.")
+                .as_ref(),
+        ),
+    )
+    .map_err(|_| LoginError::TokenCreation)?;
+    let refresh_token = encode(
+        &Header::default(),
+        &ref_claims,
+        &EncodingKey::from_secret(
+            dotenvy::var("SECRET")
+                .expect("No secret was provided.")
+                .as_ref(),
+        ),
+    )
+    .map_err(|_| LoginError::TokenCreation)?;
+
+    Ok(LoginResponse::new(access_token, refresh_token))
+}
+
+#[derive(Deserialize)]
+pub struct RefreshRequest {
+    refresh_token: String,
+}
+
+pub async fn refresh(
+    Json(refresh_request): Json<RefreshRequest>,
+) -> Result<Json<LoginResponse>, LoginError> {
+    if refresh_request.refresh_token.is_empty() {
+        return Err(LoginError::MissingCredentials);
+    }
+
+    let claims = jsonwebtoken::decode::<Claims>(
+        &refresh_request.refresh_token,
+        &DecodingKey::from_secret(
+            dotenvy::var("SECRET")
+                .expect("No secret was provided.")
+                .as_ref(),
+        ),
+        &Validation::default(),
+    )
+    .map_err(|_| LoginError::InvalidCredentials)?;
+
+    let email = claims.claims.sub;
+    let mut logres = create_login_response(email)?;
+    logres.refresh_token = refresh_request.refresh_token;
+    Ok(Json(logres))
+}
+
+pub async fn auth(mut request: Request, next: Next) -> Result<Response, StatusCode> {
+    let auth_header = request
+        .headers()
+        .get("Authorization")
+        .and_then(|value| value.to_str().ok());
+    if let Some(auth_header) = auth_header {
+        let token = auth_header.replace("Bearer ", "");
+        let claims = jsonwebtoken::decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(
+                dotenvy::var("SECRET")
+                    .expect("No secret was provided.")
+                    .as_ref(),
+            ),
+            &Validation::default(),
+        )
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+        request.extensions_mut().insert(claims.claims.sub);
+        Ok(next.run(request).await)
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }
