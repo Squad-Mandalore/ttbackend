@@ -3,7 +3,11 @@ use axum::{
     http::{header, HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
+    Json, RequestExt,
+};
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
 };
 use chrono::{prelude::*, Duration};
 use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
@@ -50,18 +54,26 @@ pub enum LoginError {
     MissingCredentials,
     DatabaseError,
     TokenCreation,
+    InvalidToken,
 }
 
 impl IntoResponse for LoginError {
     fn into_response(self) -> Response {
         let (status, error_message, www_authenticate) = match self {
-            LoginError::InvalidCredentials => {
-                (StatusCode::UNAUTHORIZED, "Invalid email or password", Some("Bearer realm=\"Application\", charset=\"UTF-8\""))
-            },
+            LoginError::InvalidCredentials => (
+                StatusCode::UNAUTHORIZED,
+                "Invalid email or password",
+                Some("Bearer realm=\"Application\", charset=\"UTF-8\""),
+            ),
+            LoginError::InvalidToken => (
+                StatusCode::UNAUTHORIZED,
+                "Invalid Token",
+                Some("Bearer realm=\"Application\", charset=\"UTF-8\""),
+            ),
             LoginError::DatabaseError => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred",
-                None
+                None,
             ),
 
             LoginError::MissingCredentials => {
@@ -70,12 +82,15 @@ impl IntoResponse for LoginError {
             LoginError::TokenCreation => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred while creating the token",
-                None
+                None,
             ),
         };
         let mut response = Response::new(error_message.into());
         *response.status_mut() = status;
-        response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain; charset=utf-8"));
+        response.headers_mut().insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/plain; charset=utf-8"),
+        );
         if let Some(authenticate) = www_authenticate {
             response.headers_mut().insert(
                 header::WWW_AUTHENTICATE,
@@ -171,25 +186,20 @@ pub async fn refresh(
 }
 
 pub async fn auth(mut request: Request, next: Next) -> Result<Response, LoginError> {
-    let auth_header = request
-        .headers()
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok());
-    if let Some(auth_header) = auth_header {
-        let token = auth_header.replace("Bearer ", "");
-        let claims = jsonwebtoken::decode::<Claims>(
-            &token,
-            &DecodingKey::from_secret(
-                dotenvy::var("SECRET")
-                    .expect("No secret was provided.")
-                    .as_ref(),
-            ),
-            &Validation::default(),
-        )
-        .map_err(|_| LoginError::InvalidCredentials)?;
-        request.extensions_mut().insert(claims.claims.sub);
-        Ok(next.run(request).await)
-    } else {
-        Err(LoginError::InvalidCredentials)
-    }
+    let TypedHeader(Authorization(bearer)) = request
+        .extract_parts::<TypedHeader<Authorization<Bearer>>>()
+        .await
+        .map_err(|_| LoginError::InvalidToken)?;
+    let claims = jsonwebtoken::decode::<Claims>(
+        &bearer.token(),
+        &DecodingKey::from_secret(
+            dotenvy::var("SECRET")
+                .expect("No secret was provided.")
+                .as_ref(),
+        ),
+        &Validation::default(),
+    )
+    .map_err(|_| LoginError::InvalidCredentials)?;
+    request.extensions_mut().insert(claims.claims.sub);
+    Ok(next.run(request).await)
 }

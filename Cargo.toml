@@ -7,6 +7,7 @@ edition = "2021"
 async-graphql = { version = "7.0.6", features = ["log"] }
 async-graphql-axum = "7.0.6"
 axum = { version = "0.7.5", features = ["tracing"] }
+axum-extra = { version = "0.9.3", features = ["typed-header"] }
 chrono = "0.4.38"
 dotenvy = "0.15.7"
 jsonwebtoken = "9.3.0"
