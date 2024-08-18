@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use sqlx::{Pool, Postgres};
-
-pub async fn set_up_database() -> Pool<Postgres> {
+pub async fn set_up_database() -> sqlx::PgPool {
     let database_url =
         dotenvy::var("DATABASE_URL").expect("there is no .env file or no DATABASE_URL present");
     let database_pool = sqlx::postgres::PgPoolOptions::new()

@@ -8,6 +8,7 @@ use axum::{
 use ttbackend::{
     database::set_up_database,
     graphql::create_schema,
+    shutdown_signal,
     tracing_setup::{remove_old_logfiles, setup_tracing},
 };
 
@@ -33,5 +34,8 @@ async fn main() {
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
 }
