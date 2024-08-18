@@ -13,6 +13,14 @@ Follow the instructions on [rust-lang](https://www.rust-lang.org/learn/get-start
 - ```rustup default stable```
 This command installes the latest stable toolchain for your native target triplet
 
+### Installing sqlx cli
+
+With Rust toolchain
+- ```$ cargo install sqlx-cli```
+
+With pacman (on Arch)
+- ```$ pacman -Sy sqlx-cli```
+
 ### Database: Postgres
 
 Install postgres on your system and create a database.
