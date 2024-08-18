@@ -15,6 +15,23 @@ pub async fn get_timers(
     .await
 }
 
+pub async fn get_timers_in_boundary(
+    employee_id: i32,
+    lower_bound: chrono::DateTime<chrono::FixedOffset>,
+    upper_bound: chrono::DateTime<chrono::FixedOffset>,
+    pool: &sqlx::PgPool,
+) -> sqlx::Result<Vec<models::Worktime>> {
+    sqlx::query_as!(
+        models::Worktime,
+        r#"SELECT worktime_id, employee_id, task_id, start_time, end_time, timeduration, work_type as "work_type: models::WorktimeType" FROM worktime WHERE employee_id = $1 AND start_time >= $2 AND start_time < $3"#,
+        employee_id,
+        lower_bound,
+        upper_bound,
+    )
+    .fetch_all(pool)
+    .await
+}
+
 pub(crate) async fn start_timer(
     employee_id: i32,
     task_id: i32,
@@ -116,6 +133,8 @@ pub(crate) async fn update_timer(
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use sqlx::postgres::types::PgInterval;
 
     use super::*;
@@ -323,6 +342,47 @@ mod tests {
             PgInterval::try_from(std::time::Duration::from_secs(secs)).unwrap()
         );
         assert_eq!(worktime.work_type, models::WorktimeType::Ride);
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures(
+        "../../fixtures/task.sql",
+        "../../fixtures/address.sql",
+        "../../fixtures/employee.sql",
+        "../../fixtures/worktime.sql"
+    ))]
+    async fn test_get_timers_in_boundary(pool: sqlx::PgPool) -> sqlx::Result<()> {
+        let worktime = &get_timers_in_boundary(
+            1,
+            chrono::DateTime::from_str("2024-01-01T00:00:00Z").unwrap(),
+            chrono::DateTime::from_str("2024-01-02T00:00:00Z").unwrap(),
+            &pool,
+        )
+        .await?;
+
+        assert_eq!(worktime.len(), 1);
+
+        let worktime = &worktime[0];
+
+        assert_eq!(worktime.employee_id, 1);
+        assert_eq!(worktime.task_id, 1);
+        assert_eq!(
+            worktime.start_time.to_rfc3339(),
+            "2024-01-01T08:00:00+00:00"
+        );
+        assert_ne!(worktime.end_time, None);
+        assert_eq!(
+            worktime.end_time.unwrap().to_rfc3339(),
+            "2024-01-01T16:00:00+00:00"
+        );
+        assert_ne!(worktime.timeduration, None);
+        let secs: u64 = 8 * 60 * 60;
+        assert_eq!(
+            worktime.timeduration.clone().unwrap(),
+            PgInterval::try_from(std::time::Duration::from_secs(secs)).unwrap()
+        );
+        assert_eq!(worktime.work_type, models::WorktimeType::Break);
 
         Ok(())
     }

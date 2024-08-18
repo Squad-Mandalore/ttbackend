@@ -15,6 +15,60 @@ impl Timer {
             .await
             .map_err(|e| async_graphql::Error::new_with_source(e))
     }
+
+    async fn timers_in_boundary(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        employee_id: i32,
+        lower_bound: chrono::DateTime<chrono::FixedOffset>,
+        upper_bound: chrono::DateTime<chrono::FixedOffset>,
+    ) -> async_graphql::Result<Vec<models::Worktime>> {
+        let pool = ctx.data::<sqlx::Pool<sqlx::Postgres>>()?;
+
+        worktime::get_timers_in_boundary(employee_id, lower_bound, upper_bound, pool)
+            .await
+            .map_err(|e| async_graphql::Error::new_with_source(e))
+    }
+
+    async fn timers_today(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        employee_id: i32,
+    ) -> async_graphql::Result<Vec<models::Worktime>> {
+        let pool = ctx.data::<sqlx::Pool<sqlx::Postgres>>()?;
+
+        let now = chrono::Utc::now().fixed_offset();
+
+        let lower_bound = now.with_time(chrono::NaiveTime::MIN).single().unwrap();
+
+        let upper_bound = lower_bound.checked_add_days(chrono::Days::new(1)).unwrap();
+
+        worktime::get_timers_in_boundary(employee_id, lower_bound, upper_bound, pool)
+            .await
+            .map_err(|e| async_graphql::Error::new_with_source(e))
+    }
+
+    async fn timers_current_month(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+        employee_id: i32,
+    ) -> async_graphql::Result<Vec<models::Worktime>> {
+        use chrono::Datelike;
+
+        let pool = ctx.data::<sqlx::Pool<sqlx::Postgres>>()?;
+
+        let now = chrono::Utc::now().fixed_offset().with_day(1).unwrap();
+
+        let lower_bound = now.with_time(chrono::NaiveTime::MIN).single().unwrap();
+
+        let upper_bound = lower_bound
+            .checked_add_months(chrono::Months::new(1))
+            .unwrap();
+
+        worktime::get_timers_in_boundary(employee_id, lower_bound, upper_bound, pool)
+            .await
+            .map_err(|e| async_graphql::Error::new_with_source(e))
+    }
 }
 
 impl Default for Timer {
