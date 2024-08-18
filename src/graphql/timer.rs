@@ -58,8 +58,8 @@ impl TimerMutation {
         ctx: &async_graphql::Context<'_>,
         worktime_id: i32,
         task_id: Option<i32>,
-        start_time: Option<chrono::DateTime<chrono::Utc>>,
-        end_time: Option<chrono::DateTime<chrono::Utc>>,
+        start_time: Option<chrono::DateTime<chrono::FixedOffset>>,
+        end_time: Option<chrono::DateTime<chrono::FixedOffset>>,
         worktype: Option<models::WorktimeType>,
     ) -> async_graphql::Result<models::Worktime> {
         let pool = ctx.data::<sqlx::PgPool>()?;
