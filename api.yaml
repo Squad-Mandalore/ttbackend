@@ -14,7 +14,7 @@ tags:
 servers:
   - url: https://example.com
     description: Production
-  - url: http://localhost:3000
+  - url: http://localhost
     description: Debug
 
 paths:
