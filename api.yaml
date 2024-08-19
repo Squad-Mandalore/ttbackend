@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Time Tracking API
   description: API of the Time Tracking Service for Schmidt's Handwerksbetrieb
-  version: 0.1.1
+  version: 0.1.2
   contact:
     name: Squad Mandalore
     url: https://github.com/Squad-Mandalore
@@ -14,7 +14,7 @@ tags:
 servers:
   - url: https://example.com
     description: Production
-  - url: http://localhost
+  - url: http://localhost:3000
     description: Debug
 
 paths:
