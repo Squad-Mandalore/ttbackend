@@ -16,7 +16,7 @@ use ttbackend::{
 
 #[cfg(debug_assertions)]
 async fn graphql_playground() -> impl IntoResponse {
-    response::Html(playground_source(GraphQLPlaygroundConfig::new("/")))
+    response::Html(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
 }
 
 #[tokio::main]
