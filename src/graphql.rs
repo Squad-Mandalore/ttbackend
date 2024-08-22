@@ -1,6 +1,6 @@
+use async_graphql::{extensions::Logger, EmptySubscription, MergedObject, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::Extension;
-use async_graphql::{extensions::Logger, EmptySubscription, MergedObject, Schema};
 
 mod timer;
 mod world;
