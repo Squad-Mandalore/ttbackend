@@ -51,8 +51,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ttbackend
-          path: target/release/ttbackend
+          name: build-${{ github.sha }}
+          path: target
           retention-days: 1
 
       - name: Test
@@ -108,8 +108,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: ttbackend
-          path: target/release
+          name: build-${{ github.sha }}
+          path: target
 
       - run: chmod +x ./target/release/ttbackend
 
