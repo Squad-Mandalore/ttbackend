@@ -144,7 +144,7 @@ pub fn create_login_response(employee_id: i32) -> Result<LoginResponse, LoginErr
         &Header::default(),
         &acc_claims,
         &EncodingKey::from_secret(
-            dotenvy::var("SECRET")
+            dotenvy::var("JWT_SECRET")
                 .expect("No secret was provided.")
                 .as_ref(),
         ),
@@ -154,7 +154,7 @@ pub fn create_login_response(employee_id: i32) -> Result<LoginResponse, LoginErr
         &Header::default(),
         &ref_claims,
         &EncodingKey::from_secret(
-            dotenvy::var("SECRET")
+            dotenvy::var("JWT_SECRET")
                 .expect("No secret was provided.")
                 .as_ref(),
         ),
@@ -174,7 +174,7 @@ pub async fn refresh(
     let claims = jsonwebtoken::decode::<Claims>(
         &refresh_request.refresh_token,
         &DecodingKey::from_secret(
-            dotenvy::var("SECRET")
+            dotenvy::var("JWT_SECRET")
                 .expect("No secret was provided.")
                 .as_ref(),
         ),
@@ -197,7 +197,7 @@ pub async fn auth(mut request: Request, next: Next) -> Result<Response, LoginErr
     let claims = jsonwebtoken::decode::<Claims>(
         &bearer.token(),
         &DecodingKey::from_secret(
-            dotenvy::var("SECRET")
+            dotenvy::var("JWT_SECRET")
                 .expect("No secret was provided.")
                 .as_ref(),
         ),
