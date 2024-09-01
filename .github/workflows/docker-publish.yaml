@@ -59,6 +59,8 @@ jobs:
         run: cargo test --no-fail-fast --verbose
 
       - name: Run clippy
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
         run: cargo clippy -- -D warnings
       - name: Run rustfmt
         run: cargo fmt -- --check
