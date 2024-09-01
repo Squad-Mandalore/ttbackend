@@ -140,6 +140,7 @@ mod tests {
     use super::*;
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -171,6 +172,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql"
@@ -188,6 +190,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -206,6 +209,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -237,6 +241,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -276,6 +281,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -315,6 +321,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -347,6 +354,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
