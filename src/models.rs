@@ -1,5 +1,7 @@
 use sqlx::postgres::types;
 
+use crate::service;
+
 #[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq, Debug, sqlx::Type)]
 #[sqlx(type_name = "worktime_type", rename_all = "lowercase")]
 pub enum WorktimeType {
@@ -34,4 +36,21 @@ impl Worktime {
             }
         }
     }
+
+    async fn task(&self, ctx: &async_graphql::Context<'_>) -> async_graphql::Result<Task> {
+        let pool = ctx.data::<sqlx::PgPool>()?;
+        service::task::get_task_by_id(self.task_id, pool)
+            .await
+            .map_err(|e| async_graphql::Error::new_with_source(e))?
+            .ok_or(async_graphql::Error::new(format!(
+                "Task with id '{}' could not be found.",
+                self.task_id
+            )))
+    }
+}
+
+#[derive(async_graphql::SimpleObject)]
+pub struct Task {
+    pub task_id: i32,
+    pub task_description: Option<String>,
 }
