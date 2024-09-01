@@ -38,6 +38,7 @@ impl LoginResponse {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RefreshRequest {
     refresh_token: String,
 }
