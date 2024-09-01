@@ -41,7 +41,7 @@ impl Worktime {
         let pool = ctx.data::<sqlx::PgPool>()?;
         service::task::get_task_by_id(self.task_id, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))?
+            .map_err(async_graphql::Error::new_with_source)?
             .ok_or(async_graphql::Error::new(format!(
                 "Task with id '{}' could not be found.",
                 self.task_id

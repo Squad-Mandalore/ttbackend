@@ -14,7 +14,7 @@ impl TaskQuery {
 
         service::task::get_tasks(pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn task_by_id(
@@ -26,7 +26,7 @@ impl TaskQuery {
 
         service::task::get_task_by_id(task_id, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 }
 
@@ -49,7 +49,7 @@ impl TaskMutation {
 
         service::task::create_task(&task_description, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn update_task(
@@ -62,7 +62,7 @@ impl TaskMutation {
 
         service::task::update_task(task_id, &task_description, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn delete_task(
@@ -74,7 +74,7 @@ impl TaskMutation {
 
         service::task::delete_task(task_id, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 }
 
