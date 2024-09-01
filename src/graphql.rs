@@ -21,12 +21,16 @@ pub fn create_schema(database_pool: sqlx::PgPool) -> SchemaType {
 }
 
 pub async fn graphql_handler(
-    axum::extract::Extension(email): axum::extract::Extension<String>,
+    axum::extract::Extension(employee_id): axum::extract::Extension<String>,
     schema: Extension<SchemaType>,
     request: GraphQLRequest,
 ) -> GraphQLResponse {
     schema
-        .execute(request.into_inner().data(email))
+        .execute(
+            request
+                .into_inner()
+                .data(employee_id.parse::<i32>().unwrap()),
+        )
         .await
         .into()
 }

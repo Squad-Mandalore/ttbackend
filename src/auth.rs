@@ -111,29 +111,31 @@ pub async fn login(
     if email.is_empty() || password.is_empty() {
         return Err(LoginError::MissingCredentials);
     }
-    let db_password: String = sqlx::query_scalar("SELECT password FROM employee WHERE email = $1")
-        .bind(&email)
-        .fetch_one(&pool)
-        .await
-        .map_err(|err| match err {
-            SqlxError::RowNotFound => LoginError::InvalidCredentials,
-            _ => LoginError::DatabaseError,
-        })?;
+    let account = sqlx::query!(
+        r#"SELECT employee_id, password FROM employee WHERE email = $1"#,
+        &email,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|err| match err {
+        SqlxError::RowNotFound => LoginError::InvalidCredentials,
+        _ => LoginError::DatabaseError,
+    })?;
 
-    if db_password != password {
+    if account.password != password {
         return Err(LoginError::InvalidCredentials);
     }
 
-    Ok(Json(create_login_response(email)?))
+    Ok(Json(create_login_response(account.employee_id)?))
 }
 
-pub fn create_login_response(email: String) -> Result<LoginResponse, LoginError> {
+pub fn create_login_response(employee_id: i32) -> Result<LoginResponse, LoginError> {
     let acc_claims = Claims {
-        sub: email.clone(),
+        sub: employee_id.to_string(),
         exp: (Utc::now() + Duration::days(1)).timestamp(),
     };
     let ref_claims = Claims {
-        sub: email.clone(),
+        sub: employee_id.to_string(),
         exp: (Utc::now() + Duration::days(30)).timestamp(),
     };
 
@@ -179,8 +181,9 @@ pub async fn refresh(
     )
     .map_err(|_| LoginError::InvalidCredentials)?;
 
-    let email = claims.claims.sub;
-    let mut logres = create_login_response(email)?;
+    // assuming the sub is proper after validation I can 'safely' use unwrap here
+    let employee_id: i32 = claims.claims.sub.parse::<i32>().unwrap();
+    let mut logres = create_login_response(employee_id)?;
     logres.refresh_token = refresh_request.refresh_token;
     Ok(Json(logres))
 }
