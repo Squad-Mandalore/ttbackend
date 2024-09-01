@@ -47,7 +47,7 @@ impl TaskMutation {
     ) -> async_graphql::Result<models::Task> {
         let pool = ctx.data::<sqlx::PgPool>()?;
 
-        service::task::create_task(task_description, pool)
+        service::task::create_task(&task_description, pool)
             .await
             .map_err(|e| async_graphql::Error::new_with_source(e))
     }
@@ -60,7 +60,7 @@ impl TaskMutation {
     ) -> async_graphql::Result<Option<models::Task>> {
         let pool = ctx.data::<sqlx::PgPool>()?;
 
-        service::task::update_task(task_id, task_description, pool)
+        service::task::update_task(task_id, &task_description, pool)
             .await
             .map_err(|e| async_graphql::Error::new_with_source(e))
     }
