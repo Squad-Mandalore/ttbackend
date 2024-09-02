@@ -1,10 +1,10 @@
 services:
   rust-backend:
-    build: .
+    image: ghcr.io/squad-mandalore/ttbackend:latest
     ports:
-      - 4269:3000
+      - 8080:3000
     environment:
-      - DATABASE_URL=postgres://postgres:kylo_ren12@database:5432/ttbackend
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@database:5432/ttbackend
     depends_on:
       - database
 
@@ -12,6 +12,4 @@ services:
     image: postgres:16.4
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=kylo_ren12
-      - POSTGRES_DB=ttbackend
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
