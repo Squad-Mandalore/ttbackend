@@ -100,7 +100,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(fixtures("../../fixtures/truncate.sql",))]
     async fn test_create_task(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let task = &create_task("test", &pool).await?;
 
