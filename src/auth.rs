@@ -195,7 +195,7 @@ pub async fn auth(mut request: Request, next: Next) -> Result<Response, LoginErr
         .await
         .map_err(|_| LoginError::InvalidToken)?;
     let claims = jsonwebtoken::decode::<Claims>(
-        &bearer.token(),
+        bearer.token(),
         &DecodingKey::from_secret(
             dotenvy::var("JWT_SECRET")
                 .expect("No secret was provided.")

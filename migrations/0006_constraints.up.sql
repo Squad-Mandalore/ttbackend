@@ -13,5 +13,4 @@ ON DELETE CASCADE;
 ALTER TABLE worktime
 ADD CONSTRAINT fk_worktime_task
 FOREIGN KEY (task_id)
-REFERENCES task (task_id)
-ON DELETE CASCADE;
+REFERENCES task (task_id);

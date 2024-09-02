@@ -2,14 +2,14 @@ use async_graphql::{extensions::Logger, EmptySubscription, MergedObject, Schema}
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::Extension;
 
+mod task;
 mod timer;
-mod world;
 
 #[derive(MergedObject, Default)]
-pub struct Query(timer::Timer, world::World);
+pub struct Query(timer::Timer, task::TaskQuery);
 
 #[derive(MergedObject, Default)]
-pub struct Mutation(timer::TimerMutation);
+pub struct Mutation(timer::TimerMutation, task::TaskMutation);
 
 pub type SchemaType = Schema<Query, Mutation, EmptySubscription>;
 

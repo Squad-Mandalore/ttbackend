@@ -13,7 +13,7 @@ impl Timer {
 
         worktime::get_timers(employee_id, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn timers_in_boundary(
@@ -27,7 +27,7 @@ impl Timer {
 
         worktime::get_timers_in_boundary(employee_id, lower_bound, upper_bound, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn timers_today(
@@ -45,7 +45,7 @@ impl Timer {
 
         worktime::get_timers_in_boundary(employee_id, lower_bound, upper_bound, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn timers_current_month(
@@ -67,7 +67,7 @@ impl Timer {
 
         worktime::get_timers_in_boundary(employee_id, lower_bound, upper_bound, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 }
 
@@ -92,7 +92,7 @@ impl TimerMutation {
 
         worktime::start_timer(employee_id, task_id, worktype, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn stop_timer(
@@ -104,7 +104,7 @@ impl TimerMutation {
 
         worktime::stop_timer(worktime_id, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 
     async fn update_timer(
@@ -120,7 +120,7 @@ impl TimerMutation {
 
         worktime::update_timer(worktime_id, task_id, start_time, end_time, worktype, pool)
             .await
-            .map_err(|e| async_graphql::Error::new_with_source(e))
+            .map_err(async_graphql::Error::new_with_source)
     }
 }
 
