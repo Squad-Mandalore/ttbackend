@@ -6,7 +6,7 @@ use axum::{
     Extension, Router,
 };
 use sqlx::PgPool;
-use tower_http::services::ServeFile;
+use tower_http::{cors, services::ServeFile};
 use ttbackend::{
     auth::{auth, login, refresh},
     database::set_up_database,
@@ -51,6 +51,13 @@ async fn main() {
 fn app(database_pool: PgPool) -> Router {
     let schema = create_schema(database_pool.clone());
 
+    let cors = cors::CorsLayer::new()
+        // allow `POST` when accessing the resource
+        .allow_methods([hyper::Method::POST])
+        .allow_headers([http::header::AUTHORIZATION, http::header::CONTENT_TYPE])
+        // allow requests from any origin
+        .allow_origin(cors::Any);
+
     // build our application with a single route
     Router::new()
         .route(
@@ -61,6 +68,7 @@ fn app(database_pool: PgPool) -> Router {
         .route("/login", post(login))
         .route("/refresh", post(refresh))
         .with_state(database_pool)
+        .layer(cors)
 }
 
 #[cfg(test)]
