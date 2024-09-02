@@ -64,7 +64,7 @@ pub(crate) async fn delete_task(
 mod tests {
     use super::*;
 
-    #[sqlx::test(fixtures("../../fixtures/task.sql",))]
+    #[sqlx::test(fixtures("../../fixtures/truncate.sql", "../../fixtures/task.sql",))]
     async fn test_get_task_by_id(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let task = &get_task_by_id(1, &pool).await?;
 
@@ -77,7 +77,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("../../fixtures/task.sql",))]
+    #[sqlx::test(fixtures("../../fixtures/truncate.sql", "../../fixtures/task.sql",))]
     async fn test_can_not_get_task_by_id(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let task = &get_task_by_id(10, &pool).await?;
 
@@ -86,7 +86,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("../../fixtures/task.sql",))]
+    #[sqlx::test(fixtures("../../fixtures/truncate.sql", "../../fixtures/task.sql",))]
     async fn test_get_tasks(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let task = &get_tasks(&pool).await?;
 
@@ -111,7 +111,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("../../fixtures/task.sql",))]
+    #[sqlx::test(fixtures("../../fixtures/truncate.sql", "../../fixtures/task.sql",))]
     async fn test_update_task(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let task = &update_task(1, "test", &pool).await?;
 
@@ -125,7 +125,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("../../fixtures/task.sql",))]
+    #[sqlx::test(fixtures("../../fixtures/truncate.sql", "../../fixtures/task.sql",))]
     async fn test_delete_task(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let task = &delete_task(1, &pool).await?;
 
