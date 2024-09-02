@@ -143,6 +143,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup .env
+        run: echo 'POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}' > .env
+
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
