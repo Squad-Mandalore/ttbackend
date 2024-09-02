@@ -102,7 +102,8 @@ mod tests {
         // Convert your JSON payload to a string
         let json_string = serde_json::to_string(&json_payload).unwrap();
 
-        let response = app.clone()
+        let response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .method("POST")
@@ -124,7 +125,8 @@ mod tests {
         let body_string = String::from_utf8(body_bytes.to_vec()).unwrap();
         println!("Body: {}", body_string);
 
-        let authorization: Authorization = serde_json::from_str(&body_string).expect("Json not correct");
+        let authorization: Authorization =
+            serde_json::from_str(&body_string).expect("Json not correct");
         (app, authorization)
     }
 
@@ -192,5 +194,4 @@ mod tests {
         let body_string = String::from_utf8(body_bytes.to_vec()).unwrap();
         println!("Body timers: {}", body_string);
     }
-
 }
