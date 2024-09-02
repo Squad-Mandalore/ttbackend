@@ -88,7 +88,7 @@ mod tests {
 
         let json_payload = json!({
         "email": "mace.windu@deepcore.com",
-        "password": "jedi456"
+        "password": "mace.windu@deepcore.com"
         });
 
         // Convert your JSON payload to a string
