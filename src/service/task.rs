@@ -37,7 +37,14 @@ pub(crate) async fn update_task(
     task_description: &str,
     pool: &sqlx::PgPool,
 ) -> sqlx::Result<Option<models::Task>> {
-    sqlx::query_as!(models::Task, "UPDATE task SET task_description = $2 WHERE task_id = $1 RETURNING task_id, task_description", task_id, task_description).fetch_optional(pool).await
+    sqlx::query_as!(
+        models::Task,
+        "UPDATE task SET task_description = $2 WHERE task_id = $1 RETURNING task_id, task_description",
+        task_id,
+        task_description
+    )
+    .fetch_optional(pool)
+    .await
 }
 
 pub(crate) async fn delete_task(
