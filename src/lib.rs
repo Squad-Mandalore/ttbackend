@@ -6,6 +6,7 @@ pub mod graphql;
 mod models;
 mod service;
 mod time_utils;
+mod security;
 pub mod tracing_setup;
 
 pub async fn shutdown_signal() {
