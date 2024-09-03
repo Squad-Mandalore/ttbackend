@@ -1,4 +1,5 @@
 use rand::{distributions::Alphanumeric, Rng};
+use sha2::{digest::generic_array::GenericArray, Digest, Sha256};
 use sqlx::PgPool;
 
 fn hash_password() {
@@ -28,7 +29,17 @@ fn apply_spice(current_password: String, spice: String) -> String {
 }
 
 // takes the current password and iterate the hasing function over it x times
-fn iterate_hash() {
+fn iterate_hash(current_password: String, x: i32) -> Vec<u8> {
+let mut hasher = Sha256::new();
+    hasher.update(current_password);
+    let mut result = hasher.finalize_reset();
+
+    for _ in 1..x {
+        hasher.update(&result);
+        result = hasher.finalize_reset();
+    }
+
+    result.into_iter().collect()
 }
 
 // takes a string and a employee_id and calls the hash_password function and compares it with the current employee password
