@@ -4,9 +4,9 @@ pub mod auth;
 pub mod database;
 pub mod graphql;
 mod models;
+mod security;
 mod service;
 mod time_utils;
-mod security;
 pub mod tracing_setup;
 
 pub async fn shutdown_signal() {

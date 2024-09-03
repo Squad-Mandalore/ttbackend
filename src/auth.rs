@@ -140,24 +140,18 @@ pub fn create_login_response(employee_id: i32) -> Result<LoginResponse, LoginErr
         exp: (Utc::now() + Duration::days(30)).timestamp(),
     };
 
+    let jwt_secret = dotenvy::var("JWT_SECRET").expect("No secret was provided.");
+
     let access_token = encode(
         &Header::default(),
         &acc_claims,
-        &EncodingKey::from_secret(
-            dotenvy::var("JWT_SECRET")
-                .expect("No secret was provided.")
-                .as_ref(),
-        ),
+        &EncodingKey::from_secret(jwt_secret.as_ref()),
     )
     .map_err(|_| LoginError::TokenCreation)?;
     let refresh_token = encode(
         &Header::default(),
         &ref_claims,
-        &EncodingKey::from_secret(
-            dotenvy::var("JWT_SECRET")
-                .expect("No secret was provided.")
-                .as_ref(),
-        ),
+        &EncodingKey::from_secret(jwt_secret.as_ref()),
     )
     .map_err(|_| LoginError::TokenCreation)?;
 
