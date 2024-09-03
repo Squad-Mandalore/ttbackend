@@ -2,9 +2,9 @@ use rand::{distributions::Alphanumeric, Rng};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 
-async fn hash_password(
+pub async fn hash_password(
     pool: &PgPool,
-    employee_id: i32,
+    employee_id: &i32,
     given_password: String,
 ) -> sqlx::Result<String> {
     let salt = get_salt(pool, employee_id).await?;
@@ -16,9 +16,7 @@ async fn hash_password(
 
     match salt {
         // first login
-        None => {
-            Ok(given_password)
-        }
+        None => Ok(given_password),
         // proceed as normal
         Some(some_salt) => {
             let spiced_password = format!("{}{}{}", given_password, some_salt, pepper);
@@ -28,7 +26,7 @@ async fn hash_password(
 }
 
 // creates a random string and saves it to the db
-async fn create_salt(pool: &PgPool, employee_id: i32, length: usize) -> sqlx::Result<String> {
+pub async fn create_salt(pool: &PgPool, employee_id: &i32, length: usize) -> sqlx::Result<()> {
     let random_string: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(length)
@@ -43,12 +41,12 @@ async fn create_salt(pool: &PgPool, employee_id: i32, length: usize) -> sqlx::Re
     .execute(pool)
     .await?;
 
-    Ok(random_string)
+    Ok(())
 }
 
 // fetches the salt from the database and will return None if there is no salt
 // e.g. on the initial login
-async fn get_salt(pool: &PgPool, employee_id: i32) -> sqlx::Result<Option<String>> {
+async fn get_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<Option<String>> {
     let result = sqlx::query!(
         "SELECT pw_salt FROM employee WHERE employee_id = $1",
         employee_id
@@ -77,14 +75,18 @@ fn iterate_hash(given_password: String, x: i32) -> String {
 }
 
 // takes a string and a employee_id and calls the hash_password function and compares it with the current employee password
-async fn verify_password(pool: &PgPool, employee_id: i32, given_password: String) -> sqlx::Result<bool> {
+pub async fn verify_password(
+    pool: &PgPool,
+    employee_id: &i32,
+    given_password: String,
+) -> sqlx::Result<bool> {
     let hashed_password = hash_password(pool, employee_id, given_password).await?;
     let current_password = get_password(pool, employee_id).await?;
 
     Ok(hashed_password == current_password)
 }
 
-async fn get_password(pool: &PgPool, employee_id: i32) -> sqlx::Result<String> {
+async fn get_password(pool: &PgPool, employee_id: &i32) -> sqlx::Result<String> {
     sqlx::query!(
         "SELECT password FROM employee WHERE employee_id = $1",
         employee_id
