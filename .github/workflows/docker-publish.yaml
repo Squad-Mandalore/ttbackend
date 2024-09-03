@@ -12,9 +12,9 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-
   CARGO_TERM_COLOR: always
-
+  DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
 jobs:
   build:
@@ -40,13 +40,9 @@ jobs:
         run: cargo install sqlx-cli
 
       - name: Setup
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
         run: sqlx db setup
 
       - name: Build
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
         run: cargo build --release --verbose
 
       - uses: actions/upload-artifact@v4
@@ -56,9 +52,7 @@ jobs:
           retention-days: 1
 
       - name: Test
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
-        run: cargo test --verbose
+        run: cargo test --no-fail-fast --verbose
 
   build_image:
     runs-on: ubuntu-latest
