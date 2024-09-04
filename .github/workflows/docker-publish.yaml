@@ -167,5 +167,7 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Deploy
-        run: docker --host ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOSTNAME }} compose up -d
+        run: |
+          docker --host ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOSTNAME }} compose down --rmi all
+          docker --host ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOSTNAME }} compose up -d
 
