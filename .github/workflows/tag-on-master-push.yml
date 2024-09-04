@@ -1,0 +1,43 @@
+name: Tag on Master Push
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "spongebobmarkus@gmail.com"
+          git config --global user.name "Markus Siegert"
+
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+          echo "PROJECT_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=PROJECT_VERSION::$VERSION"
+
+      - name: Check if tag exists
+        id: check-tag
+        run: |
+          if git rev-parse "refs/tags/${{ steps.version.outputs.VERSION }}" >/dev/null 2>&1; then
+            echo "::set-output name=EXISTS::yes"
+          else
+            echo "::set-output name=EXISTS::no"
+          fi
+
+      - name: Create and push tag
+        if: steps.check-tag.outputs.EXISTS == 'no'
+        run: |
+          TAG_NAME="v${{ steps.version.outputs.VERSION }}"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
