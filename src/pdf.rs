@@ -1,7 +1,7 @@
 use crate::database::set_up_database;
 use crate::models::Worktime;
 use crate::service::worktime;
-use chrono::{DateTime, Datelike, NaiveDate};
+use chrono::{DateTime, Datelike, Local, NaiveDate};
 use printpdf::*;
 use sqlx::postgres::types::PgInterval;
 use std::collections::HashMap;
@@ -104,8 +104,7 @@ fn format_duration(interval: PgInterval) -> String {
     format!("{:02}:{:02}", hours, minutes)
 }
 
-pub async fn get_month_times(given_month: &str) -> sqlx::Result<Vec<Vec<String>>> {
-    let employee_id_test = 1;
+pub async fn get_month_times(given_month: &str, employee_id: i32) -> sqlx::Result<Vec<Vec<String>>> {
     let database_pool = set_up_database().await;
     let next_month = add_month(given_month);
     let year: i32 = given_month[0..4].parse().expect("Invalid year format");
@@ -119,7 +118,7 @@ pub async fn get_month_times(given_month: &str) -> sqlx::Result<Vec<Vec<String>>
     let datetime_end = DateTime::parse_from_rfc3339(&datetime_end_stc).unwrap();
 
     let worktimes = worktime::get_timers_in_boundary(
-        employee_id_test,
+        employee_id,
         datetime_start,
         datetime_end,
         &database_pool,
@@ -132,9 +131,9 @@ pub async fn get_month_times(given_month: &str) -> sqlx::Result<Vec<Vec<String>>
     Ok(schedule)
 }
 
-pub async fn generate_pdf() {
+pub async fn generate_pdf(given_month: &str, employee_id: i32, first_name: &str, last_name: &str, email: &str) {
     let (doc, page1, layer1) =
-        PdfDocument::new("PDF_Document_title", Mm(210.0), Mm(297.0), "Layer 1");
+        PdfDocument::new("Zeiterfassungen", Mm(210.0), Mm(297.0), "Layer 1");
 
     let font_bold = doc
         .add_external_font(File::open("fonts/ntn-Bold.ttf").unwrap())
@@ -166,7 +165,6 @@ pub async fn generate_pdf() {
         is_clipping_path: false,
     };
 
-    // Header Colour
     let header_colour = Color::Rgb(Rgb::new(0.176, 0.176, 0.176, None));
     current_layer.set_fill_color(header_colour);
     current_layer.add_shape(rectangle);
@@ -178,29 +176,62 @@ pub async fn generate_pdf() {
 
     // First Name
     current_layer.use_text("Vorname:", 12.0, Mm(21.0), Mm(244.0), &font_light);
-    current_layer.use_text("Markus", 12.0, Mm(60.0), Mm(244.0), &font_light);
+    current_layer.use_text(first_name, 12.0, Mm(60.0), Mm(244.0), &font_light);
 
     // Last Name
     current_layer.use_text("Nachname:", 12.0, Mm(21.0), Mm(239.0), &font_light);
-    current_layer.use_text("Quarkus", 12.0, Mm(60.0), Mm(239.0), &font_light);
+    current_layer.use_text(last_name, 12.0, Mm(60.0), Mm(239.0), &font_light);
 
     // Email
     current_layer.use_text("Email-Adresse:", 12.0, Mm(21.0), Mm(234.0), &font_light);
     current_layer.use_text(
-        "markus@quarkus.nvim",
+        email,
         12.0,
         Mm(60.0),
         Mm(234.0),
         &font_light,
     );
 
+    // Day on which the pdf was requested
+    let current_date = Local::now().date_naive();
+    let formatted_date = current_date.format("%d.%m.%Y").to_string();
+
+    // Month of the requested 
+    let given_date = NaiveDate::parse_from_str(&format!("{}-01", given_month), "%Y-%m-%d").unwrap();
+    let given_date_year = given_date.year();
+    let given_date_month = given_date.month();
+
+    // German schedaddles
+    let german_months = [
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
+    ];
+    let month_name = german_months[(given_date_month - 1) as usize];
+    let formatted_given_month = format!("{} {}", month_name, given_date_year);
+
     // Month
     current_layer.use_text("Monat:", 12.0, Mm(148.0), Mm(239.0), &font_light);
-    current_layer.use_text("Juli 2024", 12.0, Mm(168.0), Mm(239.0), &font_light);
+    current_layer.use_text(
+        formatted_given_month,
+        12.0,
+        Mm(168.0),
+        Mm(239.0),
+        &font_light,
+    );
 
     // Date
     current_layer.use_text("Datum:", 12.0, Mm(148.0), Mm(234.0), &font_light);
-    current_layer.use_text("29.07.2024", 12.0, Mm(168.0), Mm(234.0), &font_light);
+    current_layer.use_text(formatted_date, 12.0, Mm(168.0), Mm(234.0), &font_light);
 
     // Schmidt's Handwerksbetrieb
     current_layer.use_text("Schmidt's", 12.0, Mm(170.0), Mm(275.0), &font_light);
@@ -230,6 +261,42 @@ pub async fn generate_pdf() {
     let text_colour = Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None));
     current_layer.set_fill_color(text_colour);
 
+    let used_schedule = get_month_times(given_month, employee_id).await.unwrap();
+    let mut days_in_month = 0;
+
+    // Iterate Days of Month
+    for (_day_num, day_entry) in used_schedule.iter().enumerate() {
+        days_in_month += 1;
+        // Combined total work and ride times for that day (for the header)
+        let mut combined_work_time: u64 = 0;
+        let mut combined_ride_time: u64 = 0;
+
+        let mut iter = day_entry.iter().skip(1);
+        let mut task_times: HashMap<String, (u64, u64)> = HashMap::new();
+
+        // Entries of one Day
+        while let Some(entry) = iter.next() {
+            let task_id = entry.split(", ").nth(1).unwrap_or("").to_string();
+            let time_str = iter
+                .next()
+                .map(|s| s.to_string())
+                .unwrap_or("00:00".to_string());
+            let time_minutes = parse_time_to_minutes(&time_str);
+
+            if entry.starts_with("Work") {
+                let task_entry = task_times.entry(task_id.clone()).or_insert((0, 0));
+                task_entry.0 += time_minutes;
+                combined_work_time += time_minutes;
+                month_time_work += combined_work_time;
+            } else if entry.starts_with("Ride") {
+                let task_entry = task_times.entry(task_id.clone()).or_insert((0, 0));
+                task_entry.1 += time_minutes;
+                combined_ride_time += time_minutes;
+                month_time_ride += combined_ride_time;
+            }
+        }
+    }
+
     // Worktime
     current_layer.use_text(
         "Arbeitszeit diesen Monat:",
@@ -238,8 +305,10 @@ pub async fn generate_pdf() {
         Mm(192.0),
         &font_medium,
     );
-    let a = format_minutes_as_time(month_time_work);
-    current_layer.use_text(&a, 10.0, Mm(130.0), Mm(192.0), &font_bold);
+    let month_time_work_text = format_minutes_as_time(month_time_work);
+    let parts: Vec<&str> = month_time_work_text.split(':').collect();
+    let formatted_text = format!("{}h {}m", parts[0], parts[1]);
+    current_layer.use_text(&formatted_text, 10.0, Mm(130.0), Mm(192.0), &font_bold);
 
     current_layer.use_text(
         "durchschnittliche Zeit pro Tag:",
@@ -248,7 +317,10 @@ pub async fn generate_pdf() {
         Mm(187.0),
         &font_medium,
     );
-    current_layer.use_text("8h 06m", 10.0, Mm(130.0), Mm(187.0), &font_bold);
+    let month_time_work_average_text = format_minutes_as_time(month_time_work/days_in_month);
+    let parts: Vec<&str> = month_time_work_average_text.split(':').collect();
+    let formatted_text = format!("{}h {}m", parts[0], parts[1]);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(187.0), &font_bold);
 
     // Traveltime
     current_layer.use_text(
@@ -258,7 +330,10 @@ pub async fn generate_pdf() {
         Mm(177.0),
         &font_medium,
     );
-    current_layer.use_text("20h 10m", 10.0, Mm(130.0), Mm(177.0), &font_bold);
+    let month_time_ride_text = format_minutes_as_time(month_time_ride);
+    let parts: Vec<&str> = month_time_ride_text.split(':').collect();
+    let formatted_text = format!("{}h {}m", parts[0], parts[1]);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(177.0), &font_bold);
 
     current_layer.use_text(
         "durchschnittliche Zeit pro Tag:",
@@ -267,7 +342,10 @@ pub async fn generate_pdf() {
         Mm(172.0),
         &font_medium,
     );
-    current_layer.use_text("1h 01m", 10.0, Mm(130.0), Mm(172.0), &font_bold);
+    let month_time_ride_average_text = format_minutes_as_time(month_time_ride/days_in_month);
+    let parts: Vec<&str> = month_time_ride_average_text.split(':').collect();
+    let formatted_text = format!("{}h {}m", parts[0], parts[1]);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(172.0), &font_bold);
 
     // Timetime
     current_layer.use_text(
@@ -277,7 +355,10 @@ pub async fn generate_pdf() {
         Mm(162.0),
         &font_medium,
     );
-    current_layer.use_text("180h 46m", 10.0, Mm(130.0), Mm(162.0), &font_bold);
+    let month_time_combined_text = format_minutes_as_time(month_time_ride+month_time_work);
+    let parts: Vec<&str> = month_time_combined_text.split(':').collect();
+    let formatted_text = format!("{}h {}m", parts[0], parts[1]);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(162.0), &font_bold);
 
     current_layer.use_text(
         "durchschnittliche Gesamtzeit pro Tag:",
@@ -286,7 +367,10 @@ pub async fn generate_pdf() {
         Mm(157.0),
         &font_medium,
     );
-    current_layer.use_text("9h 07m", 10.0, Mm(130.0), Mm(157.0), &font_bold);
+    let month_time_combined_average_text = format_minutes_as_time((month_time_work + month_time_ride)/days_in_month);
+    let parts: Vec<&str> = month_time_combined_average_text.split(':').collect();
+    let formatted_text = format!("{}h {}m", parts[0], parts[1]);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(157.0), &font_bold);
 
     current_layer.use_text(
         "Gesamtübersicht erfasster Zeiten:",
@@ -314,7 +398,6 @@ pub async fn generate_pdf() {
     current_layer.set_fill_color(header_colour);
     current_layer.add_shape(rectangle);
 
-    // Table Text
     let text_colour = Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None));
     current_layer.set_fill_color(text_colour);
 
@@ -326,15 +409,12 @@ pub async fn generate_pdf() {
     current_layer.use_text("Gesamtzeit", 11.0, column_widths[3], Mm(120.0), &font_bold);
     current_layer.use_text("Aufgabe", 11.0, column_widths[4], Mm(120.0), &font_bold);
 
-    let used_schedule = get_month_times("2024-01").await.unwrap();
-
-    // Define font size and position
     let font_size = 10.0;
     let line_height = Mm(8.0);
-    let mut current_y_pos = Mm(110.0);
+    let mut current_y_pos = Mm(110.0) - Mm(3.0);
     let mut current_page = 1;
 
-    // Iterate over each day's schedule
+    // Iterate Days of Month
     for (day_num, day_entry) in used_schedule.iter().enumerate() {
         // Combined total work and ride times for that day (for the header)
         let mut combined_work_time: u64 = 0;
@@ -346,34 +426,24 @@ pub async fn generate_pdf() {
             let current_page_text = current_page.to_string();
             current_layer.use_text(current_page_text, 13.0, Mm(185.0), Mm(14.0), &font_medium);
 
-            // Call the refactored function to add a new page
-            let (new_layer, new_y_pos, new_page) = add_new_page(
-                &doc,
-                current_page,
-                &font_bold,
-                &column_widths,
-                line_height,
-            );
+            let (new_layer, _new_y_pos, new_page) =
+                add_new_page(&doc, current_page, &font_bold, &column_widths, line_height);
 
-            // Update current_layer, current_y_pos, and current_page with the returned values
             current_layer = new_layer;
-            current_y_pos = new_y_pos;
+            current_y_pos = Mm(273.0) - line_height;
             current_page = new_page;
         }
 
-        // Set up default values for the columns
-        let col1 = format!("{}, {:02}.", day_entry[0], day_num + 1); // Combine the first entry with day number
-        let mut col2 = "00:00".to_string();
-        let mut col3 = "00:00".to_string();
-        let mut col4 = "00:00".to_string();
-        let col5 = "Haus bauen".to_string();
+        let _col1 = format!("{}, {:02}.", day_entry[0], day_num + 1);
+        let _col2 = "00:00".to_string();
+        let _col3 = "00:00".to_string();
+        let _col4 = "00:00".to_string();
+        let _col5 = "Haus bauen".to_string();
 
-        let mut iter = day_entry.iter().skip(1); // Skip the first entry (since it's the date)
+        let mut iter = day_entry.iter().skip(1);
+        let mut task_times: HashMap<String, (u64, u64)> = HashMap::new();
 
-        // Task ID HashMap to store and accumulate times by task_id for both "Work" and "Ride"
-        let mut task_times: HashMap<String, (u64, u64)> = HashMap::new(); // (work_time, ride_time)
-
-        // Process entries for the day
+        // Entries of one Day
         while let Some(entry) = iter.next() {
             let task_id = entry.split(", ").nth(1).unwrap_or("").to_string();
             let time_str = iter
@@ -452,17 +522,12 @@ pub async fn generate_pdf() {
                 current_layer.use_text(current_page_text, 13.0, Mm(185.0), Mm(14.0), &font_medium);
 
                 // Call the refactored function to add a new page
-                let (new_layer, new_y_pos, new_page) = add_new_page(
-                    &doc,
-                    current_page,
-                    &font_bold,
-                    &column_widths,
-                    line_height,
-                );
+                let (new_layer, _new_y_pos, new_page) =
+                    add_new_page(&doc, current_page, &font_bold, &column_widths, line_height);
 
                 // Update current_layer, current_y_pos, and current_page with the returned values
                 current_layer = new_layer;
-                current_y_pos = new_y_pos;
+                current_y_pos = Mm(273.0) - line_height;
                 current_page = new_page;
             }
 
@@ -507,38 +572,38 @@ pub async fn generate_pdf() {
                 column_widths[1],
                 current_y_pos,
                 &font_medium,
-            ); // Work time in the second column
+            );
             current_layer.use_text(
                 &ride_time_str,
                 font_size,
                 column_widths[2],
                 current_y_pos,
                 &font_medium,
-            ); // Ride time in the third column
+            );
             current_layer.use_text(
                 &total_time_str,
                 font_size,
                 column_widths[3],
                 current_y_pos,
                 &font_medium,
-            ); // Total time in the fourth column
+            );
             current_layer.use_text(
                 &*task_id,
                 font_size,
                 column_widths[4],
                 current_y_pos,
                 &font_medium,
-            ); // Task ID in the fifth column
+            );
 
-            // Move down for the next row
             current_y_pos -= line_height;
         }
     }
     let current_page_text = current_page.to_string();
     current_layer.use_text(current_page_text, 13.0, Mm(185.0), Mm(14.0), &font_medium);
 
+    let pdf_name = format!("./target/Zeiterfassung {} {}.pdf", employee_id, given_month);
     doc.save(&mut BufWriter::new(
-        File::create("test_workings.pdf").unwrap(),
+        File::create(pdf_name).unwrap(),
     ))
     .unwrap();
 }
@@ -573,7 +638,7 @@ fn add_new_page(
         Mm(297.0),
         &format!("Page {}, Layer 1", current_page),
     );
-    let mut current_layer = doc.get_page(new_page).get_layer(new_layer);
+    let current_layer = doc.get_page(new_page).get_layer(new_layer);
 
     let points = vec![
         (Point::new(Mm(21.0), Mm(273.0)), false),

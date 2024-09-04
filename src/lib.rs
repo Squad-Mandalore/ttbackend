@@ -7,7 +7,7 @@ mod models;
 mod service;
 mod time_utils;
 pub mod tracing_setup;
-pub mod pdf_gen;
+pub mod pdf;
 
 pub async fn shutdown_signal() {
     let ctrl_c = async {

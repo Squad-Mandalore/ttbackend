@@ -7,7 +7,7 @@ use axum::{
 };
 use tower_http::services::ServeFile;
 use ttbackend::{
-    auth::{auth, login, refresh}, database::set_up_database, graphql::{create_schema, graphql_handler}, pdf_gen, shutdown_signal, tracing_setup::{remove_old_logfiles, setup_tracing}
+    auth::{auth, login, refresh}, database::set_up_database, graphql::{create_schema, graphql_handler}, pdf, shutdown_signal, tracing_setup::{remove_old_logfiles, setup_tracing}
 };
 
 #[cfg(debug_assertions)]
@@ -18,7 +18,7 @@ async fn graphql_playground() -> impl IntoResponse {
 #[tokio::main]
 async fn main() {
 
-    pdf_gen::generate_pdf().await;
+    pdf::generate_pdf("2024-01", 1, "Markus", "Quarkus", "markus@quarkus.nvim").await;
 
     
 
