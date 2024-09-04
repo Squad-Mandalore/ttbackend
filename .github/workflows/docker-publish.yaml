@@ -22,7 +22,6 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     services:
@@ -35,32 +34,46 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: Swatinem/rust-cache@v2
         with:
           key: ttbackend
-
       - name: Get SQLx-ClI
         run: cargo install sqlx-cli
-
       - name: Setup
         run: sqlx db setup
 
       - name: Run build
         run: cargo build --release --verbose
-
       - uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.sha }}
           path: target
           retention-days: 1
 
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ttbackend
+      - name: Get SQLx-ClI
+        run: cargo install sqlx-cli
+      - name: Setup
+        run: sqlx db setup
+
       - name: Run test
         run: cargo test --no-fail-fast --verbose
-
       - name: Run clippy
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
         run: cargo clippy -- -D warnings
       - name: Run rustfmt
         run: cargo fmt -- --check
@@ -76,8 +89,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
