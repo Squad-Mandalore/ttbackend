@@ -48,15 +48,13 @@ pub async fn create_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<()> {
 // fetches the salt from the database and will return None if there is no salt
 // e.g. on the initial login
 async fn get_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<Option<String>> {
-    let result = sqlx::query!(
+    sqlx::query!(
         "SELECT pw_salt FROM employee WHERE employee_id = $1",
         employee_id
     )
-    .fetch_optional(pool)
-    .await?
-    .and_then(|record| record.pw_salt);
-
-    Ok(result)
+    .fetch_one(pool)
+    .await
+    .map(|record| record.pw_salt)
 }
 
 // takes the current password and iterate the hasing function over it x times
@@ -72,7 +70,7 @@ fn iterate_hash(given_password: String) -> String {
     let mut result = hasher.finalize_reset();
 
     for _ in 1..keychain_number {
-        hasher.update(&result);
+        hasher.update(result);
         result = hasher.finalize_reset();
     }
 
@@ -98,8 +96,7 @@ async fn get_password(pool: &PgPool, employee_id: &i32) -> sqlx::Result<String> 
         employee_id
     )
     .fetch_one(pool)
-    .await
-    .and_then(|record| Ok(record.password))
+    .await.map(|record| record.password)
 }
 
 #[cfg(test)]
