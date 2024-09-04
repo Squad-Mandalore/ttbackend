@@ -261,7 +261,9 @@ mod tests {
         "../fixtures/address.sql",
         "../fixtures/employee.sql",
     ))]
-    async fn test_verify_password_and_hash_password_on_updated_password(pool: PgPool) -> sqlx::Result<()> {
+    async fn test_verify_password_and_hash_password_on_updated_password(
+        pool: PgPool,
+    ) -> sqlx::Result<()> {
         // given is the employee_id and the password to verify on a user which has a proper
         // password
         let employee_id = 2;

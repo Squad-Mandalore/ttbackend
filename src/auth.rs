@@ -125,7 +125,10 @@ pub async fn login(
         _ => LoginError::DatabaseError,
     })?;
 
-    if !verify_password(&pool, &account.employee_id, password).await.map_err(|_| LoginError::DatabaseError)? {
+    if !verify_password(&pool, &account.employee_id, password)
+        .await
+        .map_err(|_| LoginError::DatabaseError)?
+    {
         return Err(LoginError::InvalidCredentials);
     }
 
