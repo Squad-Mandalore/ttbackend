@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 use sqlx::PgPool;
 
+use crate::security::verify_password;
+
 #[derive(Deserialize)]
 pub struct LoginRequest {
     email: String,
@@ -123,7 +125,10 @@ pub async fn login(
         _ => LoginError::DatabaseError,
     })?;
 
-    if account.password != password {
+    if !verify_password(&pool, &account.employee_id, password)
+        .await
+        .map_err(|_| LoginError::DatabaseError)?
+    {
         return Err(LoginError::InvalidCredentials);
     }
 
@@ -140,24 +145,18 @@ pub fn create_login_response(employee_id: i32) -> Result<LoginResponse, LoginErr
         exp: (Utc::now() + Duration::days(30)).timestamp(),
     };
 
+    let jwt_secret = dotenvy::var("JWT_SECRET").expect("No secret was provided.");
+
     let access_token = encode(
         &Header::default(),
         &acc_claims,
-        &EncodingKey::from_secret(
-            dotenvy::var("JWT_SECRET")
-                .expect("No secret was provided.")
-                .as_ref(),
-        ),
+        &EncodingKey::from_secret(jwt_secret.as_ref()),
     )
     .map_err(|_| LoginError::TokenCreation)?;
     let refresh_token = encode(
         &Header::default(),
         &ref_claims,
-        &EncodingKey::from_secret(
-            dotenvy::var("JWT_SECRET")
-                .expect("No secret was provided.")
-                .as_ref(),
-        ),
+        &EncodingKey::from_secret(jwt_secret.as_ref()),
     )
     .map_err(|_| LoginError::TokenCreation)?;
 

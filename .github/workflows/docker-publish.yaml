@@ -15,6 +15,9 @@ env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://postgres:password@localhost:5432/time_tracker
   JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  PEPPER: ${{ secrets.PEPPER }}
+  SALT_LENGTH: ${{ secrets.SALT_LENGTH }}
+  KEYCHAIN_NUMBER: ${{ secrets.KEYCHAIN_NUMBER }}
 
 jobs:
   build:
