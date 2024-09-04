@@ -2,9 +2,9 @@ name: Tag on Master Push
 
 on:
   pull_request:
-    types: [closed]
     branches:
       - master
+    types: [closed]
 
 jobs:
   tag:
@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.merged == true
     steps:
       - name: Checkout code
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
