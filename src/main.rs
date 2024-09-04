@@ -154,6 +154,7 @@ mod tests {
         let body_string = String::from_utf8(body_bytes.to_vec()).unwrap();
         println!("Body timers: {}", body_string);
     }
+
     #[tokio::test]
     async fn test_refresh() {
         let (app, claims) = login().await;

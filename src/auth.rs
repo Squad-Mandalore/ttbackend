@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 use sqlx::PgPool;
 
+use crate::security::verify_password;
+
 #[derive(Deserialize)]
 pub struct LoginRequest {
     email: String,
@@ -123,7 +125,7 @@ pub async fn login(
         _ => LoginError::DatabaseError,
     })?;
 
-    if account.password != password {
+    if !verify_password(&pool, &account.employee_id, password).await.map_err(|_| LoginError::DatabaseError)? {
         return Err(LoginError::InvalidCredentials);
     }
 
