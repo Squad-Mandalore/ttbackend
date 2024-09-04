@@ -18,8 +18,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config --global user.email "spongebobmarkus@gmail.com"
-          git config --global user.name "Markus Siegert"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Get version from Cargo.toml
         id: version
