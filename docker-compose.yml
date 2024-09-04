@@ -5,6 +5,9 @@ services:
       - 4269:3000
     environment:
       - DATABASE_URL=postgres://postgres:kylo_ren12@database:5432/ttbackend
+      - PEPPER=${PEPPER}
+      - SALT_LENGTH=${SALT_LENGTH}
+      - KEYCHAIN_NUMBER=${KEYCHAIN_NUMBER}
     depends_on:
       - database
 
