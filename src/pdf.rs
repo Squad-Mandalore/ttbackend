@@ -1,10 +1,11 @@
 use crate::models::Worktime;
 use crate::service::worktime;
+use axum::http::StatusCode;
 use base64::encode;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use printpdf::*;
 use sqlx::postgres::types::PgInterval;
-use sqlx::{Pool, Postgres};
+use sqlx::{PgPool, Pool, Postgres};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Cursor;
@@ -121,8 +122,8 @@ fn format_duration(interval: PgInterval) -> String {
 
 async fn get_month_times(
     given_month: &str,
-    employee_id: i32,
-    database_pool: &Pool<Postgres>, // Pass the database_pool by reference
+    employee_id: &i32,
+    database_pool: &PgPool, // Pass the database_pool by reference
 ) -> sqlx::Result<Vec<Vec<String>>> {
     let next_month = add_month(given_month);
     let year: i32 = given_month[0..4]
@@ -156,15 +157,23 @@ async fn get_month_times(
 // TODO: Query for employee_id to remove unnecessary parameters
 pub async fn generate_pdf(
     given_month: &str,
-    employee_id: i32,
-    first_name: &str,
-    last_name: &str,
-    email: &str,
-    database_pool: Pool<Postgres>,
+    employee_id: &i32,
+    database_pool: &PgPool,
 ) -> Result<String, std::io::Error> {
     let pdf_height = 297.0;
     let pdf_width = 210.0;
     let zero = 0.0;
+    let employee_info = sqlx::query!(
+        "SELECT firstname, lastname, email FROM employee  WHERE employee_id = $1",
+        employee_id
+    )
+    .fetch_one(database_pool)
+    .await
+    .map_err(|err| return std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))?;
+
+    let first_name = employee_info.firstname.unwrap_or(String::from(""));
+    let last_name = employee_info.lastname.unwrap_or(String::from(""));
+    let email = employee_info.email.unwrap_or(String::from(""));
 
     let (doc, page1, layer1) =
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
@@ -631,7 +640,8 @@ pub async fn generate_pdf(
     {
         let cursor = Cursor::new(&mut pdf_buffer);
         let mut writer = BufWriter::new(cursor);
-        doc.save(&mut writer).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        doc.save(&mut writer)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     }
 
     let pdf_base64 = encode(&pdf_buffer);
@@ -639,7 +649,10 @@ pub async fn generate_pdf(
     // Save the PDF to a file for debugging
     #[cfg(debug_assertions)]
     {
-        let pdf_name = format!("./target/debug/Zeiterfassung_{}_{}.pdf", employee_id, given_month);
+        let pdf_name = format!(
+            "./target/debug/Zeiterfassung_{}_{}.pdf",
+            employee_id, given_month
+        );
         let mut file = BufWriter::new(File::create(pdf_name)?);
         file.write_all(&pdf_buffer)?;
     }

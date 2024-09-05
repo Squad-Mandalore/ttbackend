@@ -16,7 +16,7 @@ pub async fn get_timers(
 }
 
 pub async fn get_timers_in_boundary(
-    employee_id: i32,
+    employee_id: &i32,
     lower_bound: chrono::DateTime<chrono::FixedOffset>,
     upper_bound: chrono::DateTime<chrono::FixedOffset>,
     pool: &sqlx::PgPool,
@@ -354,7 +354,7 @@ mod tests {
     ))]
     async fn test_get_timers_in_boundary(pool: sqlx::PgPool) -> sqlx::Result<()> {
         let worktime = &get_timers_in_boundary(
-            1,
+            &1,
             chrono::DateTime::from_str("2024-01-01T00:00:00Z").unwrap(),
             chrono::DateTime::from_str("2024-01-02T00:00:00Z").unwrap(),
             &pool,
