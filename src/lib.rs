@@ -4,10 +4,10 @@ pub mod auth;
 pub mod database;
 pub mod graphql;
 mod models;
+pub mod pdf;
 mod service;
 mod time_utils;
 pub mod tracing_setup;
-pub mod pdf;
 
 pub async fn shutdown_signal() {
     let ctrl_c = async {

@@ -7,7 +7,11 @@ use axum::{
 };
 use tower_http::services::ServeFile;
 use ttbackend::{
-    auth::{auth, login, refresh}, database::set_up_database, graphql::{create_schema, graphql_handler}, pdf, shutdown_signal, tracing_setup::{remove_old_logfiles, setup_tracing}
+    auth::{auth, login, refresh},
+    database::set_up_database,
+    graphql::{create_schema, graphql_handler},
+    pdf, shutdown_signal,
+    tracing_setup::{remove_old_logfiles, setup_tracing},
 };
 
 #[cfg(debug_assertions)]
@@ -17,10 +21,6 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-
-    pdf::generate_pdf("2024-01", 1, "Markus", "Quarkus", "markus@quarkus.nvim").await;
-
-    
 
     // setup tracing
     let _guard = setup_tracing();
@@ -41,6 +41,7 @@ async fn main() {
         .route("/refresh", post(refresh))
         .with_state(database_pool);
 
+        
     #[cfg(debug_assertions)]
     let debug = Router::new()
         .route("/playground", get(graphql_playground))
@@ -50,13 +51,13 @@ async fn main() {
     #[cfg(debug_assertions)]
     let app = app.nest("/debug", debug);
 
-    // run our app with hyper, listening globally on port 3001*
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3001").await.unwrap();
+    // run our app with hyper, listening globally on port 3000
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+        .await
+        .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
-
-    
 }
