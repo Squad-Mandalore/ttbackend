@@ -37,6 +37,11 @@ sqlx database create
 sqlx migrate run
 ```
 
+### Other important variables
+```
+echo -e "JWT_SECRET=jwt_secret\nPEPPER=hatschuuuuu\nSALT_LENGTH=16\nKEYCHAIN_NUMBER=42" >> .env
+```
+
 ## How to run
 
 - ```cargo run```

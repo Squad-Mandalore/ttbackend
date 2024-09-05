@@ -3,7 +3,7 @@ use sqlx::query_builder;
 use crate::models;
 
 pub async fn get_timers(
-    employee_id: i32,
+    employee_id: &i32,
     pool: &sqlx::PgPool,
 ) -> sqlx::Result<Vec<models::Worktime>> {
     sqlx::query_as!(
@@ -33,7 +33,7 @@ pub async fn get_timers_in_boundary(
 }
 
 pub(crate) async fn start_timer(
-    employee_id: i32,
+    employee_id: &i32,
     task_id: i32,
     worktype: models::WorktimeType,
     pool: &sqlx::PgPool,
@@ -140,13 +140,14 @@ mod tests {
     use super::*;
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
         "../../fixtures/worktime.sql"
     ))]
     async fn test_get_timers(pool: sqlx::PgPool) -> sqlx::Result<()> {
-        let worktime = &get_timers(1, &pool).await?[0];
+        let worktime = &get_timers(&1, &pool).await?[0];
 
         assert_eq!(worktime.employee_id, 1);
         assert_eq!(worktime.task_id, 1);
@@ -171,12 +172,13 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql"
     ))]
     async fn test_start_timer(pool: sqlx::PgPool) -> sqlx::Result<()> {
-        let worktime = &start_timer(1, 1, models::WorktimeType::Break, &pool).await?;
+        let worktime = &start_timer(&1, 1, models::WorktimeType::Break, &pool).await?;
 
         assert_eq!(worktime.employee_id, 1);
         assert_eq!(worktime.task_id, 1);
@@ -188,6 +190,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -206,6 +209,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -237,6 +241,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -276,6 +281,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -315,6 +321,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",
@@ -347,6 +354,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures(
+        "../../fixtures/truncate.sql",
         "../../fixtures/task.sql",
         "../../fixtures/address.sql",
         "../../fixtures/employee.sql",

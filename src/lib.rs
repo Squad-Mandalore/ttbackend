@@ -5,6 +5,7 @@ pub mod database;
 pub mod graphql;
 mod models;
 pub mod pdf;
+mod security;
 mod service;
 mod time_utils;
 pub mod tracing_setup;

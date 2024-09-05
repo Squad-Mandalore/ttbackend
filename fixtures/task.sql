@@ -1,2 +1,23 @@
-INSERT INTO task (task_id, task_description)
-VALUES (1, 'first task'), (2, 'second task');
+INSERT INTO task (task_id, task_description) VALUES 
+('first task'), 
+('second task'),
+('Repair Millennium Falcon'),
+('Negotiate Trade Agreement'),
+('Jedi Training Session'),
+('Explore Outer Rim Territories'),
+('Develop New Droid Prototype'),
+('Rescue Mission'),
+('Analyze Battle Strategies'),
+('Construct Lightsaber'),
+('Spy on Imperial Forces'),
+('Diplomatic Meeting'),
+('Guard Senate Building'),
+('Scout New Rebel Base'),
+('Train Clone Troopers'),
+('Study Sith Artifacts'),
+('Monitor Galactic Trade'),
+('Establish Communications Network'),
+('Smuggle Supplies to Rebel Forces'),
+('Pilot X-Wing Squadron'),
+('Decrypt Imperial Messages'),
+('Gather Intelligence on Death Star');
