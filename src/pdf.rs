@@ -99,7 +99,10 @@ async fn generate_schedule(
                 // Handle the duration
                 if let Some(d) = &worktime.timeduration {
                     let formatted_duration = format_duration(d.clone());
-                    day_entry.push(format!("{:?}, {}", worktime.work_type, truncated_task_description));
+                    day_entry.push(format!(
+                        "{:?}, {}",
+                        worktime.work_type, truncated_task_description
+                    ));
                     day_entry.push(formatted_duration);
 
                     // Add to total duration
@@ -201,11 +204,14 @@ pub async fn generate_pdf(
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
 
     let font_bold = doc
-        .add_external_font(File::open("fonts/ntn-Bold.ttf").expect("cannot load bold font")).expect("cannot load bold font");
+        .add_external_font(File::open("fonts/ntn-Bold.ttf").expect("cannot load bold font"))
+        .expect("cannot load bold font");
     let font_medium = doc
-        .add_external_font(File::open("fonts/ntn-Medium.ttf").expect("cannot load medium font")).expect("cannot load medium font");
+        .add_external_font(File::open("fonts/ntn-Medium.ttf").expect("cannot load medium font"))
+        .expect("cannot load medium font");
     let font_light = doc
-        .add_external_font(File::open("fonts/ntn-Light.ttf").expect("cannot load light font")).expect("cannot load light font");
+        .add_external_font(File::open("fonts/ntn-Light.ttf").expect("cannot load light font"))
+        .expect("cannot load light font");
 
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
 
