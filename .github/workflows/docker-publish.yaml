@@ -3,9 +3,7 @@ name: Docker
 on:
   pull_request:
     branches: [ "dev", "master" ]
-  push:
-    # Publish semver tags as releases.
-    tags: [ 'v[0-9]+.[0-9]+.[0-9]+' ]
+  workflow_call:
 
 env:
   # Use docker.io for Docker Hub if empty
