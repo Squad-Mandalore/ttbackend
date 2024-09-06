@@ -813,7 +813,7 @@ mod tests {
     fn test_generate_pdf(pool: sqlx::PgPool) -> Result<(), Box<dyn Error>> {
         let generated_pdf = generate_pdf("2024-01", &1, &pool, "a").await?;
 
-        let output_path = "target/debug/test/generated_output.b64";
+        let output_path = "test/generated_output.b64";
         println!("{}", output_path);
         write_b64_to_file(output_path, &generated_pdf).await?;
 
@@ -822,7 +822,7 @@ mod tests {
             "The .b64 file was not created!"
         );
 
-        let pdf_output_path = "target/debug/test/output.pdf";
+        let pdf_output_path = "test/output.pdf";
         save_as_pdf(output_path, pdf_output_path)?;
 
         fs::remove_file(output_path)?;
