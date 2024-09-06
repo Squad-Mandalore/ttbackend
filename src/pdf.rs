@@ -1,15 +1,15 @@
 use crate::models::Worktime;
-use crate::service::worktime;
-use axum::http::StatusCode;
+use crate::service::{task, worktime};
 use base64::encode;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use printpdf::*;
 use sqlx::postgres::types::PgInterval;
-use sqlx::{PgPool, Pool, Postgres};
+use sqlx::PgPool;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Cursor;
 use std::io::{BufWriter, Write};
+use std::io::Cursor;
+
 
 fn add_month(given_month: &str) -> String {
     let year: i32 = given_month[0..4]
@@ -45,10 +45,11 @@ fn add_durations(d1: &PgInterval, d2: &PgInterval) -> PgInterval {
     }
 }
 
-fn generate_schedule(
+async fn generate_schedule(
     worktimes: Vec<Worktime>,
     year: i32,
     month: u32,
+    database_pool: &PgPool,
 ) -> Result<Vec<Vec<String>>, String> {
     let mut schedule: Vec<Vec<String>> = Vec::new();
 
@@ -72,13 +73,27 @@ fn generate_schedule(
                 .iter()
                 .filter(|w| w.start_time.date_naive() == date)
             {
-                // TODO: Query for task_description
-                let task_description = worktime.task_id;
+
+                let task_description_raw =
+                    match task::get_task_by_id(worktime.task_id, database_pool).await {
+                        Ok(Some(task)) => task.task_description,
+                        Ok(None) => None,
+                        Err(err) => {
+                            eprintln!("Error fetching task: {:?}", err);
+                            None
+                        }
+                    };
+
+                let task_description =
+                    task_description_raw.unwrap_or("No description available".to_string());
 
                 // Handle the duration
                 if let Some(d) = &worktime.timeduration {
                     let formatted_duration = format_duration(d.clone());
-                    day_entry.push(format!("{:?}, {}", worktime.work_type, task_description));
+                    day_entry.push(format!(
+                        "{:?}, {}",
+                        worktime.work_type, task_description
+                    ));
                     day_entry.push(formatted_duration);
 
                     // Add to total duration
@@ -148,17 +163,18 @@ async fn get_month_times(
             .await?;
 
     // Generate schedule, handling any potential error
-    let schedule =
-        generate_schedule(worktimes, year, month).map_err(|e| sqlx::Error::Decode(e.into()))?; // Map the error from generate_schedule to sqlx::Error
+    let schedule = generate_schedule(worktimes, year, month, database_pool)
+        .await
+        .map_err(|e| sqlx::Error::Decode(e.into()))?;
 
     Ok(schedule)
 }
 
-// TODO: Query for employee_id to remove unnecessary parameters
 pub async fn generate_pdf(
     given_month: &str,
     employee_id: &i32,
     database_pool: &PgPool,
+    color_for_header: &str,
 ) -> Result<String, std::io::Error> {
     let pdf_height = 297.0;
     let pdf_width = 210.0;
@@ -195,8 +211,25 @@ pub async fn generate_pdf(
 
     let pdf_header_height_start = 217.0;
 
+    let telekom_funk = Rgb::new(0.0, 0.5, 0.0, None);
+    let hardworking_brown = Rgb::new(0.447, 0.227, 0.067, None);
+    let peasent_blue = Rgb::new(0.141, 0.486, 0.737, None);
+    let grassy_fields = Rgb::new(0.345, 0.459, 0.016, None);
+    let baumarkt_rot = Rgb::new(0.647, 0.051, 0.051, None);
+    let schmidt_brand = Rgb::new(0.871, 0.102, 0.102, None);
+    let default_grey = Rgb::new(0.176, 0.176, 0.176, None);
+
+    let header_color = match color_for_header {
+        "TelekomFunk" => Color::Rgb(telekom_funk),
+        "HardworkingBrown" => Color::Rgb(hardworking_brown),
+        "PeasentBlue" => Color::Rgb(peasent_blue),
+        "GrassyFields" => Color::Rgb(grassy_fields),
+        "BaumarktRot" => Color::Rgb(baumarkt_rot),
+        "SchmidtBrand" => Color::Rgb(schmidt_brand),
+        _ => Color::Rgb(default_grey),
+    };
+
     let rectangle = create_rectangle(zero, pdf_width, pdf_height, pdf_header_height_start);
-    let header_color = Color::Rgb(Rgb::new(0.176, 0.176, 0.176, None));
     current_layer.set_fill_color(header_color);
     current_layer.add_shape(rectangle);
 
@@ -637,25 +670,14 @@ pub async fn generate_pdf(
 
     // Write the PDF to memory (Vec<u8> buffer)
     let mut pdf_buffer = Vec::new();
+
     {
         let cursor = Cursor::new(&mut pdf_buffer);
         let mut writer = BufWriter::new(cursor);
         doc.save(&mut writer)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     }
-
     let pdf_base64 = encode(&pdf_buffer);
-
-    // Save the PDF to a file for debugging
-    #[cfg(debug_assertions)]
-    {
-        let pdf_name = format!(
-            "./target/debug/Zeiterfassung_{}_{}.pdf",
-            employee_id, given_month
-        );
-        let mut file = BufWriter::new(File::create(pdf_name)?);
-        file.write_all(&pdf_buffer)?;
-    }
 
     Ok(pdf_base64)
 }
@@ -743,7 +765,33 @@ fn create_rectangle(x_left: f64, x_right: f64, y_top: f64, y_bottom: f64) -> Lin
 // Tests module
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+    use std::error::Error;
+    use base64::decode;
+    use tokio::fs as tokio_fs;
+    use std::fs::{self};
+
     use super::*;
+
+    // Helper function for writing the pdf file
+    async fn write_b64_to_file(path: &str, base64_data: &str) -> Result<(), Box<dyn Error>> {
+        tokio_fs::write(path, base64_data).await?;
+        Ok(())
+    }
+
+    fn save_as_pdf(b64_path: &str, pdf_path: &str) -> Result<(), Box<dyn Error>> {
+        // Read the Base64-encoded content from the .b64 file
+        let b64_content = fs::read_to_string(b64_path)?;
+
+        // Decode the Base64 string into bytes
+        let pdf_bytes = decode(b64_content)?;
+
+        // Write the decoded bytes to a PDF file
+        let mut pdf_file = fs::File::create(pdf_path)?;
+        pdf_file.write_all(&pdf_bytes)?;
+
+        Ok(())
+    }
 
     #[test]
     fn test_format_minutes_as_time() {
@@ -753,6 +801,32 @@ mod tests {
         assert_eq!(format_minutes_as_time(10), "00:10");
         assert_eq!(format_minutes_as_time(61), "01:01");
         assert_eq!(format_minutes_as_time(6000), "100:00");
+    }
+
+    #[sqlx::test(fixtures(
+        "../fixtures/truncate.sql",
+        "../fixtures/task.sql",
+        "../fixtures/address.sql",
+        "../fixtures/employee.sql",
+        "../fixtures/worktime.sql"
+    ))]
+    fn test_generate_pdf(pool: sqlx::PgPool) -> Result<(), Box<dyn Error>> {
+        let generated_pdf = generate_pdf("2024-01", &1, &pool, "a").await?;
+
+        let output_path = "target/debug/test/generated_output.b64";
+        println!("{}", output_path);
+        write_b64_to_file(output_path, &generated_pdf).await?;
+
+        assert!(
+            Path::new(output_path).exists(),
+            "The .b64 file was not created!"
+        );
+
+        let pdf_output_path = "target/debug/test/output.pdf";
+        save_as_pdf(output_path, pdf_output_path)?;
+
+        fs::remove_file(output_path)?;
+        Ok(())
     }
 
     #[test]
