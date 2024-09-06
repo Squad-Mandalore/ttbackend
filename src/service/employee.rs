@@ -2,6 +2,7 @@ use sqlx::PgPool;
 
 use crate::security::{create_salt, hash_password};
 
+#[allow(dead_code)]
 pub async fn update_password(
     pool: &PgPool,
     employee_id: &i32,

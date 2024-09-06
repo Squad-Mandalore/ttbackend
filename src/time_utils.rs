@@ -2,11 +2,13 @@ use std::str::FromStr;
 
 use chrono::{prelude::*, Duration};
 
+#[allow(dead_code)]
 pub fn create_timestamp() -> String {
     let now: DateTime<Utc> = Utc::now();
     now.to_rfc3339()
 }
 
+#[allow(dead_code)]
 pub fn calculate_difference(start: &str, end: &str) -> Result<String, chrono::ParseError> {
     let start_time: DateTime<Utc> = DateTime::from_str(start)?;
     let end_time: DateTime<Utc> = DateTime::from_str(end)?;
@@ -15,6 +17,7 @@ pub fn calculate_difference(start: &str, end: &str) -> Result<String, chrono::Pa
     Ok(format_duration(duration))
 }
 
+#[allow(dead_code)]
 fn format_duration(duration: Duration) -> String {
     let days: i64 = duration.num_days();
     let hours: i64 = duration.num_hours() % 24;
