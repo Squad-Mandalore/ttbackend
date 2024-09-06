@@ -191,7 +191,7 @@ pub async fn generate_pdf(
     )
     .fetch_one(database_pool)
     .await
-    .map_err(|err| return std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))?;
+    .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))?;
 
     let first_name = employee_info.firstname.unwrap_or(String::from(""));
     let last_name = employee_info.lastname.unwrap_or(String::from(""));
@@ -201,14 +201,11 @@ pub async fn generate_pdf(
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
 
     let font_bold = doc
-        .add_external_font(File::open("fonts/ntn-Bold.ttf").unwrap())
-        .expect("cannot load bold font");
+        .add_external_font(File::open("fonts/ntn-Bold.ttf").expect("cannot load bold font")).expect("cannot load bold font");
     let font_medium = doc
-        .add_external_font(File::open("fonts/ntn-Medium.ttf").unwrap())
-        .expect("cannot load medium font");
+        .add_external_font(File::open("fonts/ntn-Medium.ttf").expect("cannot load medium font")).expect("cannot load medium font");
     let font_light = doc
-        .add_external_font(File::open("fonts/ntn-Light.ttf").unwrap())
-        .expect("cannot load light font");
+        .add_external_font(File::open("fonts/ntn-Light.ttf").expect("cannot load light font")).expect("cannot load light font");
 
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
 
@@ -320,7 +317,7 @@ pub async fn generate_pdf(
     let text_color = Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None));
     current_layer.set_fill_color(text_color);
 
-    let used_schedule = get_month_times(given_month, employee_id, &database_pool)
+    let used_schedule = get_month_times(given_month, employee_id, database_pool)
         .await
         .unwrap();
     let mut days_in_month = 0;
@@ -585,7 +582,7 @@ pub async fn generate_pdf(
             &font_medium,
         );
         current_layer.use_text(
-            &*col5,
+            col5,
             font_size,
             column_widths[4],
             current_y_pos,
@@ -661,7 +658,7 @@ pub async fn generate_pdf(
                 &font_medium,
             );
             current_layer.use_text(
-                &*task_id,
+                task_id,
                 font_size,
                 column_widths[4],
                 current_y_pos,
