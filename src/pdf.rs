@@ -24,6 +24,15 @@ fn add_month(given_month: &str) -> String {
     format!("{:04}-{:02}", new_year, new_month)
 }
 
+fn truncate_string(input: &str, max_length: usize) -> String {
+    if input.chars().count() > max_length {
+        let truncated: String = input.chars().take(max_length).collect();
+        format!("{}...", truncated)
+    } else {
+        input.to_string()
+    }
+}
+
 fn get_weekday_abbreviation(date: chrono::NaiveDate) -> String {
     match date.weekday() {
         chrono::Weekday::Mon => "Mo".to_string(),
@@ -85,10 +94,12 @@ async fn generate_schedule(
                 let task_description =
                     task_description_raw.unwrap_or("No description available".to_string());
 
+                let truncated_task_description = truncate_string(&task_description, 14);
+
                 // Handle the duration
                 if let Some(d) = &worktime.timeduration {
                     let formatted_duration = format_duration(d.clone());
-                    day_entry.push(format!("{:?}, {}", worktime.work_type, task_description));
+                    day_entry.push(format!("{:?}, {}", worktime.work_type, truncated_task_description));
                     day_entry.push(formatted_duration);
 
                     // Add to total duration
@@ -911,5 +922,28 @@ mod tests {
         };
 
         assert_eq!(format_duration(duration_zero), "00:00");
+    }
+
+    #[test]
+    fn test_truncate_string() {
+        let input = "Short text";
+        let result = truncate_string(input, 20);
+        assert_eq!(result, "Short text");
+
+        let input = "Exactly twenty char";
+        let result = truncate_string(input, 20);
+        assert_eq!(result, "Exactly twenty char");
+
+        let input = "This is a very long text that should be truncated";
+        let result = truncate_string(input, 20);
+        assert_eq!(result, "This is a very long ...");
+
+        let input = "Text";
+        let result = truncate_string(input, 0);
+        assert_eq!(result, "...");
+
+        let input = "";
+        let result = truncate_string(input, 10);
+        assert_eq!(result, "");
     }
 }
