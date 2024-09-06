@@ -11,7 +11,7 @@ use ttbackend::{
     auth::{auth, login, refresh},
     database::set_up_database,
     graphql::{create_schema, graphql_handler},
-    pdf, shutdown_signal,
+    shutdown_signal,
     tracing_setup::{remove_old_logfiles, setup_tracing},
 };
 
@@ -22,7 +22,6 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-
     // setup tracing
     let _guard = setup_tracing();
     let _ = remove_old_logfiles().await;

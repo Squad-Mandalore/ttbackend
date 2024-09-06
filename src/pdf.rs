@@ -7,9 +7,8 @@ use sqlx::postgres::types::PgInterval;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::BufWriter;
 use std::io::Cursor;
-
 
 fn add_month(given_month: &str) -> String {
     let year: i32 = given_month[0..4]
@@ -73,7 +72,6 @@ async fn generate_schedule(
                 .iter()
                 .filter(|w| w.start_time.date_naive() == date)
             {
-
                 let task_description_raw =
                     match task::get_task_by_id(worktime.task_id, database_pool).await {
                         Ok(Some(task)) => task.task_description,
@@ -90,10 +88,7 @@ async fn generate_schedule(
                 // Handle the duration
                 if let Some(d) = &worktime.timeduration {
                     let formatted_duration = format_duration(d.clone());
-                    day_entry.push(format!(
-                        "{:?}, {}",
-                        worktime.work_type, task_description
-                    ));
+                    day_entry.push(format!("{:?}, {}", worktime.work_type, task_description));
                     day_entry.push(formatted_duration);
 
                     // Add to total duration
@@ -765,11 +760,12 @@ fn create_rectangle(x_left: f64, x_right: f64, y_top: f64, y_bottom: f64) -> Lin
 // Tests module
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-    use std::error::Error;
     use base64::decode;
-    use tokio::fs as tokio_fs;
+    use std::error::Error;
     use std::fs::{self};
+    use std::io::Write;
+    use std::path::Path;
+    use tokio::fs as tokio_fs;
 
     use super::*;
 
