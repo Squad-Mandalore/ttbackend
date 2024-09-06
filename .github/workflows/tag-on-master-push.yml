@@ -8,6 +8,8 @@ on:
 
 jobs:
   tag:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true
     steps:
@@ -25,20 +27,20 @@ jobs:
         id: version
         run: |
           VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
-          echo "::set-output name=PROJECT_VERSION::$VERSION"
+          echo "PROJECT_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check if tag exists
         id: check-tag
         run: |
-          if git rev-parse "refs/tags/${{ steps.version.outputs.VERSION }}" >/dev/null 2>&1; then
-            echo "::set-output name=EXISTS::yes"
+          if git rev-parse "refs/tags/v${{ steps.version.outputs.PROJECT_VERSION }}" >/dev/null 2>&1; then
+            echo "EXISTS=yes" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=EXISTS::no"
+            echo "EXISTS=no" >> $GITHUB_OUTPUT
           fi
 
       - name: Create and push tag
         if: steps.check-tag.outputs.EXISTS == 'no'
         run: |
-          TAG_NAME="v${{ steps.version.outputs.VERSION }}"
+          TAG_NAME="v${{ steps.version.outputs.PROJECT_VERSION }}"
           git tag $TAG_NAME
           git push origin $TAG_NAME
