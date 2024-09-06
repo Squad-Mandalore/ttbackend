@@ -4,6 +4,7 @@ pub mod auth;
 pub mod database;
 pub mod graphql;
 mod models;
+mod security;
 mod service;
 mod time_utils;
 pub mod tracing_setup;

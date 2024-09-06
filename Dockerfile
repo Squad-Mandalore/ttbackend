@@ -1,19 +1,9 @@
-FROM rust:1.79-alpine AS builder
-
+FROM  debian:bookworm-slim
 WORKDIR /app
-RUN USER=root
 
-RUN apk add pkgconfig openssl-dev libc-dev
-COPY ./ ./
-RUN cargo build --release
+RUN apt update && apt install libssl3 -y
 
-FROM alpine:latest
-WORKDIR /app
-RUN apk update \
-    && apk add openssl ca-certificates
+COPY ./target/release/ttbackend ./ttbackend
 
 EXPOSE 3000
-
-COPY --from=builder /app/target/release/ttbackend /app/ttbackend
-
-CMD ["/app/ttbackend"]
+CMD [ "./ttbackend" ]
