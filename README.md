@@ -49,3 +49,5 @@ echo -e "JWT_SECRET=jwt_secret\nPEPPER=hatschuuuuu\nSALT_LENGTH=16\nKEYCHAIN_NUM
 ## How to test
 
 - ```cargo test```
+- If you have tested too much and want to clear your ephemeral sqlx test databases run (dk if it runs on windows too, also dc):
+  ``` psql -U postgres -d postgres -t -c "SELECT 'DROP DATABASE IF EXISTS ' || datname || ';' FROM pg_database WHERE datname LIKE '_sqlx_test_%';" | psql -U postgres -d postgres ```
