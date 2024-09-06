@@ -1,6 +1,7 @@
 use rand::{distributions::Alphanumeric, Rng};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
+use std::fmt::Write;
 
 pub async fn hash_password(
     pool: &PgPool,
@@ -76,7 +77,10 @@ fn iterate_hash(given_password: String) -> String {
     }
 
     // convert bytes into hexadecimal string
-    result.iter().map(|byte| format!("{:02x}", byte)).collect()
+    result.iter().fold(String::new(), |mut output, byte| {
+        let _ = write!(output, "{byte:02X}");
+        output
+    })
 }
 
 // takes a string and a employee_id and calls the hash_password function and compares it with the current employee password
@@ -97,7 +101,8 @@ async fn get_password(pool: &PgPool, employee_id: &i32) -> sqlx::Result<String> 
         employee_id
     )
     .fetch_one(pool)
-    .await.map(|record| record.password)
+    .await
+    .map(|record| record.password)
 }
 
 #[cfg(test)]
