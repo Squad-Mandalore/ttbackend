@@ -22,6 +22,7 @@ pub async fn hash_password(
 }
 
 // creates a random string and saves it to the db
+#[allow(dead_code)]
 pub async fn create_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<()> {
     let salt_length = dotenvy::var("SALT_LENGTH")
         .expect("SALT_LENGTH variable not set.")
