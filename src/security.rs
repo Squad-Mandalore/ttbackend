@@ -1,6 +1,7 @@
 use rand::{distributions::Alphanumeric, Rng};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
+use std::fmt::Write;
 
 pub async fn hash_password(
     pool: &PgPool,
@@ -22,6 +23,7 @@ pub async fn hash_password(
 }
 
 // creates a random string and saves it to the db
+#[allow(dead_code)]
 pub async fn create_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<()> {
     let salt_length = dotenvy::var("SALT_LENGTH")
         .expect("SALT_LENGTH variable not set.")
@@ -48,15 +50,13 @@ pub async fn create_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<()> {
 // fetches the salt from the database and will return None if there is no salt
 // e.g. on the initial login
 async fn get_salt(pool: &PgPool, employee_id: &i32) -> sqlx::Result<Option<String>> {
-    let result = sqlx::query!(
+    sqlx::query!(
         "SELECT pw_salt FROM employee WHERE employee_id = $1",
         employee_id
     )
-    .fetch_optional(pool)
-    .await?
-    .and_then(|record| record.pw_salt);
-
-    Ok(result)
+    .fetch_one(pool)
+    .await
+    .map(|record| record.pw_salt)
 }
 
 // takes the current password and iterate the hasing function over it x times
@@ -72,12 +72,15 @@ fn iterate_hash(given_password: String) -> String {
     let mut result = hasher.finalize_reset();
 
     for _ in 1..keychain_number {
-        hasher.update(&result);
+        hasher.update(result);
         result = hasher.finalize_reset();
     }
 
     // convert bytes into hexadecimal string
-    result.iter().map(|byte| format!("{:02x}", byte)).collect()
+    result.iter().fold(String::new(), |mut output, byte| {
+        let _ = write!(output, "{byte:02X}");
+        output
+    })
 }
 
 // takes a string and a employee_id and calls the hash_password function and compares it with the current employee password
@@ -99,7 +102,7 @@ async fn get_password(pool: &PgPool, employee_id: &i32) -> sqlx::Result<String> 
     )
     .fetch_one(pool)
     .await
-    .and_then(|record| Ok(record.password))
+    .map(|record| record.password)
 }
 
 #[cfg(test)]
