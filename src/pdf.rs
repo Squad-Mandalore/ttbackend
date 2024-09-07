@@ -119,7 +119,9 @@ async fn generate_schedule(
             // Return an error if the date couldn't be generated
             return Err(anyhow!(
                 "Failed to generate schedule for year {} and month {} at day {}.",
-                year, month, day
+                year,
+                month,
+                day
             ));
         }
     }
@@ -147,10 +149,8 @@ async fn get_month_times(
     database_pool: &PgPool, // Pass the database_pool by reference
 ) -> anyhow::Result<Vec<Vec<String>>> {
     let next_month = add_month(given_month)?;
-    let year: i32 = given_month[0..4]
-        .parse()?;
-    let month: u32 = given_month[5..7]
-        .parse()?;
+    let year: i32 = given_month[0..4].parse()?;
+    let month: u32 = given_month[5..7].parse()?;
 
     // Construct datetime boundaries for the query
     let datetime_start_stc = format!("{}-01T00:00:00Z", given_month);
@@ -254,7 +254,8 @@ pub async fn generate_pdf(
     let formatted_date = current_date.format("%d.%m.%Y").to_string();
 
     // Month of the requested
-    let given_date = NaiveDate::parse_from_str(&format!("{}-01", given_month), "%Y-%m-%d").context("given month has the wrong format")?;
+    let given_date = NaiveDate::parse_from_str(&format!("{}-01", given_month), "%Y-%m-%d")
+        .context("given month has the wrong format")?;
     let given_date_year = given_date.year();
     let given_date_month = given_date.month();
 
@@ -313,8 +314,7 @@ pub async fn generate_pdf(
     let text_color = Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None));
     current_layer.set_fill_color(text_color);
 
-    let used_schedule = get_month_times(given_month, employee_id, database_pool)
-        .await?;
+    let used_schedule = get_month_times(given_month, employee_id, database_pool).await?;
     let mut days_in_month = 0;
 
     // Iterate Days of Month
