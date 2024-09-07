@@ -48,6 +48,6 @@ jobs:
           git push origin $TAG_NAME
 
   deploy:
-    need: tag
+    needs: tag
     if: needs.tag.outputs.exists == 'no'
     uses: ./.github/workflows/docker-publish.yaml
