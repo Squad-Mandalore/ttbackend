@@ -55,5 +55,3 @@ jobs:
     needs: tag
     if: needs.tag.outputs.exists == 'no'
     uses: ./.github/workflows/docker-publish.yaml
-    with:
-      tag_exists: ${{ needs.tag.outputs.exists }}
