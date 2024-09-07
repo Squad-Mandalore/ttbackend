@@ -12,6 +12,8 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true
+    outputs:
+      exists: ${{ steps.check-tag.outputs.EXISTS }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,7 +46,8 @@ jobs:
           TAG_NAME="v${{ steps.version.outputs.PROJECT_VERSION }}"
           git tag $TAG_NAME
           git push origin $TAG_NAME
-    
-      - name: Run Docker pipline
-        if: steps.check-tag.outputs.EXISTS == 'no'
-        uses: ./.github/workflows/docker-publish.yaml
+
+  deploy:
+    needs: tag
+    if: needs.tag.outputs.exists == 'no'
+    uses: ./.github/workflows/docker-publish.yaml
