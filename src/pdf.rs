@@ -1,5 +1,6 @@
 use crate::models::Worktime;
 use crate::service::{task, worktime};
+use anyhow::{anyhow, Context};
 use base64::encode;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use printpdf::*;
@@ -10,18 +11,18 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::io::Cursor;
 
-fn add_month(given_month: &str) -> String {
+fn add_month(given_month: &str) -> anyhow::Result<String> {
     let year: i32 = given_month[0..4]
         .parse()
-        .expect("cannot extract year of given month");
+        .context("cannot extract year of given month")?;
     let month: u32 = given_month[5..7]
         .parse()
-        .expect("cannot extract month of given month");
+        .context("cannot extract month of given month")?;
 
     let new_month = if month == 12 { 1 } else { month + 1 };
 
     let new_year = if month == 12 { year + 1 } else { year };
-    format!("{:04}-{:02}", new_year, new_month)
+    Ok(format!("{:04}-{:02}", new_year, new_month))
 }
 
 fn truncate_string(input: &str, max_length: usize) -> String {
@@ -58,7 +59,7 @@ async fn generate_schedule(
     year: i32,
     month: u32,
     database_pool: &PgPool,
-) -> Result<Vec<Vec<String>>, String> {
+) -> anyhow::Result<Vec<Vec<String>>> {
     let mut schedule: Vec<Vec<String>> = Vec::new();
 
     // Determine the number of days in the month
@@ -82,13 +83,9 @@ async fn generate_schedule(
                 .filter(|w| w.start_time.date_naive() == date)
             {
                 let task_description_raw =
-                    match task::get_task_by_id(worktime.task_id, database_pool).await {
-                        Ok(Some(task)) => task.task_description,
-                        Ok(None) => None,
-                        Err(err) => {
-                            eprintln!("Error fetching task: {:?}", err);
-                            None
-                        }
+                    match task::get_task_by_id(worktime.task_id, database_pool).await? {
+                        Some(task) => task.task_description,
+                        None => None,
                     };
 
                 let task_description =
@@ -120,7 +117,7 @@ async fn generate_schedule(
             schedule.push(day_entry);
         } else {
             // Return an error if the date couldn't be generated
-            return Err(format!(
+            return Err(anyhow!(
                 "Failed to generate schedule for year {} and month {} at day {}.",
                 year, month, day
             ));
@@ -148,23 +145,19 @@ async fn get_month_times(
     given_month: &str,
     employee_id: &i32,
     database_pool: &PgPool, // Pass the database_pool by reference
-) -> sqlx::Result<Vec<Vec<String>>> {
-    let next_month = add_month(given_month);
+) -> anyhow::Result<Vec<Vec<String>>> {
+    let next_month = add_month(given_month)?;
     let year: i32 = given_month[0..4]
-        .parse()
-        .map_err(|_| sqlx::Error::Decode("Invalid year format".into()))?; // Handle invalid year format with a custom error
+        .parse()?;
     let month: u32 = given_month[5..7]
-        .parse()
-        .map_err(|_| sqlx::Error::Decode("Invalid month format".into()))?; // Handle invalid month format with a custom error
+        .parse()?;
 
     // Construct datetime boundaries for the query
     let datetime_start_stc = format!("{}-01T00:00:00Z", given_month);
-    let datetime_start = DateTime::parse_from_rfc3339(&datetime_start_stc)
-        .map_err(|_| sqlx::Error::Decode("Invalid start date format".into()))?;
+    let datetime_start = DateTime::parse_from_rfc3339(&datetime_start_stc)?;
 
     let datetime_end_stc = format!("{}-01T00:00:00Z", next_month);
-    let datetime_end = DateTime::parse_from_rfc3339(&datetime_end_stc)
-        .map_err(|_| sqlx::Error::Decode("Invalid end date format".into()))?;
+    let datetime_end = DateTime::parse_from_rfc3339(&datetime_end_stc)?;
 
     // Query for worktimes within the given date range
     let worktimes =
@@ -172,9 +165,7 @@ async fn get_month_times(
             .await?;
 
     // Generate schedule, handling any potential error
-    let schedule = generate_schedule(worktimes, year, month, database_pool)
-        .await
-        .map_err(|e| sqlx::Error::Decode(e.into()))?;
+    let schedule = generate_schedule(worktimes, year, month, database_pool).await?;
 
     Ok(schedule)
 }
@@ -184,7 +175,7 @@ pub async fn generate_pdf(
     employee_id: &i32,
     database_pool: &PgPool,
     color_for_header: &str,
-) -> Result<String, std::io::Error> {
+) -> anyhow::Result<String> {
     let pdf_height = 297.0;
     let pdf_width = 210.0;
     let zero = 0.0;
@@ -193,8 +184,7 @@ pub async fn generate_pdf(
         employee_id
     )
     .fetch_one(database_pool)
-    .await
-    .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))?;
+    .await?;
 
     let first_name = employee_info.firstname.unwrap_or(String::from(""));
     let last_name = employee_info.lastname.unwrap_or(String::from(""));
@@ -204,14 +194,14 @@ pub async fn generate_pdf(
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
 
     let font_bold = doc
-        .add_external_font(File::open("fonts/ntn-Bold.ttf").expect("cannot load bold font"))
-        .expect("cannot load bold font");
+        .add_external_font(File::open("fonts/ntn-Bold.ttf").context("cannot load bold font")?)
+        .context("cannot apply bold font")?;
     let font_medium = doc
-        .add_external_font(File::open("fonts/ntn-Medium.ttf").expect("cannot load medium font"))
-        .expect("cannot load medium font");
+        .add_external_font(File::open("fonts/ntn-Medium.ttf").context("cannot load medium font")?)
+        .context("cannot apply medium font")?;
     let font_light = doc
-        .add_external_font(File::open("fonts/ntn-Light.ttf").expect("cannot load light font"))
-        .expect("cannot load light font");
+        .add_external_font(File::open("fonts/ntn-Light.ttf").context("cannot load light font")?)
+        .context("cannot apply light font")?;
 
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
 
@@ -264,7 +254,7 @@ pub async fn generate_pdf(
     let formatted_date = current_date.format("%d.%m.%Y").to_string();
 
     // Month of the requested
-    let given_date = NaiveDate::parse_from_str(&format!("{}-01", given_month), "%Y-%m-%d").unwrap();
+    let given_date = NaiveDate::parse_from_str(&format!("{}-01", given_month), "%Y-%m-%d").context("given month has the wrong format")?;
     let given_date_year = given_date.year();
     let given_date_month = given_date.month();
 
@@ -324,8 +314,7 @@ pub async fn generate_pdf(
     current_layer.set_fill_color(text_color);
 
     let used_schedule = get_month_times(given_month, employee_id, database_pool)
-        .await
-        .unwrap();
+        .await?;
     let mut days_in_month = 0;
 
     // Iterate Days of Month
@@ -683,8 +672,7 @@ pub async fn generate_pdf(
     {
         let cursor = Cursor::new(&mut pdf_buffer);
         let mut writer = BufWriter::new(cursor);
-        doc.save(&mut writer)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        doc.save(&mut writer)?;
     }
     let pdf_base64 = encode(&pdf_buffer);
 
@@ -851,9 +839,9 @@ mod tests {
 
     #[test]
     fn test_add_month() {
-        assert_eq!(add_month("2024-01"), "2024-02");
-        assert_eq!(add_month("2024-12"), "2025-01");
-        assert_eq!(add_month("2023-11"), "2023-12");
+        assert_eq!(add_month("2024-01").unwrap(), "2024-02");
+        assert_eq!(add_month("2024-12").unwrap(), "2025-01");
+        assert_eq!(add_month("2023-11").unwrap(), "2023-12");
     }
 
     #[test]
