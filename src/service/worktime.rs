@@ -369,7 +369,7 @@ mod tests {
         )
         .await?;
 
-        assert_eq!(worktime.len(), 1);
+        assert_eq!(worktime.len(), 2);
 
         let worktime = &worktime[0];
 
