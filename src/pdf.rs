@@ -1,6 +1,7 @@
 use crate::models::Worktime;
 use crate::service::{task, worktime};
 use anyhow::{anyhow, Context};
+use async_graphql::Enum;
 use base64::encode;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use printpdf::*;
@@ -10,6 +11,30 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Cursor;
+
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum HeaderColor {
+    TelekomFunk,
+    HardworkingBrown,
+    PeasentBlue,
+    GrassyFields,
+    BaumarktRot,
+    SchmidtBrand,
+    DefaultGrey,
+}
+impl HeaderColor {
+    pub fn to_rgb(self) -> Color {
+        match self {
+            HeaderColor::TelekomFunk => Color::Rgb(Rgb::new(0.0, 0.5, 0.0, None)),
+            HeaderColor::HardworkingBrown => Color::Rgb(Rgb::new(0.447, 0.227, 0.067, None)),
+            HeaderColor::PeasentBlue => Color::Rgb(Rgb::new(0.141, 0.486, 0.737, None)),
+            HeaderColor::GrassyFields => Color::Rgb(Rgb::new(0.345, 0.459, 0.016, None)),
+            HeaderColor::BaumarktRot => Color::Rgb(Rgb::new(0.647, 0.051, 0.051, None)),
+            HeaderColor::SchmidtBrand => Color::Rgb(Rgb::new(0.871, 0.102, 0.102, None)),
+            HeaderColor::DefaultGrey => Color::Rgb(Rgb::new(0.176, 0.176, 0.176, None)),
+        }
+    }
+}
 
 fn add_month(given_month: &str) -> anyhow::Result<String> {
     let year: i32 = given_month[0..4]
@@ -144,9 +169,9 @@ fn format_duration(interval: PgInterval) -> String {
 }
 
 async fn get_month_times(
-    given_month: &str,
-    employee_id: &i32,
     database_pool: &PgPool, // Pass the database_pool by reference
+    employee_id: &i32,
+    given_month: &str,
 ) -> anyhow::Result<Vec<Vec<String>>> {
     let next_month = add_month(given_month)?;
     let year: i32 = given_month[0..4].parse()?;
@@ -171,10 +196,10 @@ async fn get_month_times(
 }
 
 pub async fn generate_pdf(
-    given_month: &str,
-    employee_id: &i32,
     database_pool: &PgPool,
-    color_for_header: &str,
+    employee_id: &i32,
+    given_month: String,
+    color_for_header: HeaderColor,
 ) -> anyhow::Result<String> {
     let pdf_height = 297.0;
     let pdf_width = 210.0;
@@ -189,6 +214,7 @@ pub async fn generate_pdf(
     let first_name = employee_info.firstname.unwrap_or(String::from(""));
     let last_name = employee_info.lastname.unwrap_or(String::from(""));
     let email = employee_info.email.unwrap_or(String::from(""));
+    let used_schedule = get_month_times(database_pool, employee_id, &given_month).await?;
 
     let (doc, page1, layer1) =
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
@@ -210,23 +236,7 @@ pub async fn generate_pdf(
 
     let pdf_header_height_start = 217.0;
 
-    let telekom_funk = Rgb::new(0.0, 0.5, 0.0, None);
-    let hardworking_brown = Rgb::new(0.447, 0.227, 0.067, None);
-    let peasent_blue = Rgb::new(0.141, 0.486, 0.737, None);
-    let grassy_fields = Rgb::new(0.345, 0.459, 0.016, None);
-    let baumarkt_rot = Rgb::new(0.647, 0.051, 0.051, None);
-    let schmidt_brand = Rgb::new(0.871, 0.102, 0.102, None);
-    let default_grey = Rgb::new(0.176, 0.176, 0.176, None);
-
-    let header_color = match color_for_header {
-        "TelekomFunk" => Color::Rgb(telekom_funk),
-        "HardworkingBrown" => Color::Rgb(hardworking_brown),
-        "PeasentBlue" => Color::Rgb(peasent_blue),
-        "GrassyFields" => Color::Rgb(grassy_fields),
-        "BaumarktRot" => Color::Rgb(baumarkt_rot),
-        "SchmidtBrand" => Color::Rgb(schmidt_brand),
-        _ => Color::Rgb(default_grey),
-    };
+    let header_color = color_for_header.to_rgb();
 
     let rectangle = create_rectangle(zero, pdf_width, pdf_height, pdf_header_height_start);
     current_layer.set_fill_color(header_color);
@@ -314,7 +324,6 @@ pub async fn generate_pdf(
     let text_color = Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None));
     current_layer.set_fill_color(text_color);
 
-    let used_schedule = get_month_times(given_month, employee_id, database_pool).await?;
     let mut days_in_month = 0;
 
     // Iterate Days of Month
@@ -809,7 +818,8 @@ mod tests {
         "../fixtures/worktime.sql"
     ))]
     fn test_generate_pdf(pool: sqlx::PgPool) -> Result<(), Box<dyn Error>> {
-        let generated_pdf = generate_pdf("2024-01", &1, &pool, "a").await?;
+        let generated_pdf =
+            generate_pdf(&pool, &1, "2024-01".to_string(), HeaderColor::DefaultGrey).await?;
 
         let output_path = "test/generated_output.b64";
         println!("{}", output_path);
