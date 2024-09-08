@@ -169,9 +169,9 @@ fn format_duration(interval: PgInterval) -> String {
 }
 
 async fn get_month_times(
+    given_month: &str,
     database_pool: &PgPool, // Pass the database_pool by reference
     employee_id: &i32,
-    given_month: &str,
 ) -> anyhow::Result<Vec<Vec<String>>> {
     let next_month = add_month(given_month)?;
     let year: i32 = given_month[0..4].parse()?;
@@ -196,10 +196,10 @@ async fn get_month_times(
 }
 
 pub async fn generate_pdf(
-    database_pool: &PgPool,
-    employee_id: &i32,
     given_month: String,
     color_for_header: HeaderColor,
+    database_pool: &PgPool,
+    employee_id: &i32,
 ) -> anyhow::Result<String> {
     let pdf_height = 297.0;
     let pdf_width = 210.0;
@@ -214,7 +214,7 @@ pub async fn generate_pdf(
     let first_name = employee_info.firstname.unwrap_or(String::from(""));
     let last_name = employee_info.lastname.unwrap_or(String::from(""));
     let email = employee_info.email.unwrap_or(String::from(""));
-    let used_schedule = get_month_times(database_pool, employee_id, &given_month).await?;
+    let used_schedule = get_month_times(&given_month, database_pool, employee_id).await?;
 
     let (doc, page1, layer1) =
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
@@ -819,7 +819,7 @@ mod tests {
     ))]
     fn test_generate_pdf(pool: sqlx::PgPool) -> Result<(), Box<dyn Error>> {
         let generated_pdf =
-            generate_pdf(&pool, &1, "2024-01".to_string(), HeaderColor::DefaultGrey).await?;
+            generate_pdf("2024-01".to_string(), HeaderColor::DefaultGrey, &pool, &1).await?;
 
         let output_path = "test/generated_output.b64";
         println!("{}", output_path);

@@ -13,7 +13,7 @@ impl PDFQuery {
         let pool = ctx.data::<sqlx::Pool<sqlx::Postgres>>()?;
         let employee_id = ctx.data::<i32>()?;
 
-        generate_pdf(pool, employee_id, month, header_color)
+        generate_pdf(month, header_color, pool, employee_id)
             .await
             .map_err(async_graphql::Error::new_with_source)
     }
