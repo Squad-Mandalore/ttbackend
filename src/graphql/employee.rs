@@ -12,7 +12,7 @@ impl EmployeeMutation {
         let pool = ctx.data::<sqlx::PgPool>()?;
         let employee_id = ctx.data::<i32>()?;
 
-        update_password(pool, employee_id, new_password).await?;
+        update_password(new_password, pool, employee_id).await?;
         Ok(String::from(""))
     }
 }
