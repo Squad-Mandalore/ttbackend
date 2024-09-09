@@ -3,7 +3,9 @@ name: Docker
 on:
   pull_request:
     branches: [ "dev", "master" ]
-  workflow_call:
+  push:
+    # Publish semver tags as releases.
+    tags: [ 'v[0-9]+.[0-9]+.[0-9]+' ]
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -183,5 +185,9 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Deploy
-        run: docker --host ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOSTNAME }} compose up -d
+        env:
+          DOCKER_HOST: ssh://${{ secrets.SSH_USER }}@${{ secrets.SSH_HOSTNAME }}
+        run: |
+          docker compose down --rmi all
+          docker compose up -d
 

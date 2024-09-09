@@ -4,9 +4,9 @@ use sqlx::PgPool;
 use std::fmt::Write;
 
 pub async fn hash_password(
+    given_password: String,
     pool: &PgPool,
     employee_id: &i32,
-    given_password: String,
 ) -> sqlx::Result<String> {
     let salt = get_salt(pool, employee_id).await?;
     let pepper = dotenvy::var("PEPPER").expect("PEPPER variable not set.");
@@ -85,11 +85,11 @@ fn iterate_hash(given_password: String) -> String {
 
 // takes a string and a employee_id and calls the hash_password function and compares it with the current employee password
 pub async fn verify_password(
+    given_password: String,
     pool: &PgPool,
     employee_id: &i32,
-    given_password: String,
 ) -> sqlx::Result<bool> {
-    let hashed_password = hash_password(pool, employee_id, given_password).await?;
+    let hashed_password = hash_password(given_password, pool, employee_id).await?;
     let current_password = get_password(pool, employee_id).await?;
 
     Ok(hashed_password == current_password)
@@ -227,7 +227,7 @@ mod tests {
         let given_password = String::from("catgirls123");
 
         // when verify_password is called
-        let check = verify_password(&pool, &employee_id, given_password).await?;
+        let check = verify_password(given_password, &pool, &employee_id).await?;
 
         // then it should match since it is the first login and no salt was already existing
         assert!(check);
@@ -248,7 +248,7 @@ mod tests {
         env::set_var("SALT_LENGTH", SALT_LENGTH.to_string());
 
         // when password is updated
-        update_password(&pool, &employee_id, password).await?;
+        update_password(password, &pool, &employee_id).await?;
 
         // then the password should be hashed and there is a new salt
         let salt = get_salt(&pool, &employee_id).await?;
@@ -271,10 +271,10 @@ mod tests {
         // password
         let employee_id = 2;
         let given_password = String::from("catgirls123!");
-        update_password(&pool, &employee_id, given_password.clone()).await?;
+        update_password(given_password.clone(), &pool, &employee_id).await?;
 
         // when verify_password is called
-        let check = verify_password(&pool, &employee_id, given_password).await?;
+        let check = verify_password(given_password, &pool, &employee_id).await?;
 
         // then it should match since it is the first login and no salt was already existing
         assert!(check);

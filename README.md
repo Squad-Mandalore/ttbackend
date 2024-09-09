@@ -46,6 +46,26 @@ echo -e "JWT_SECRET=jwt_secret\nPEPPER=hatschuuuuu\nSALT_LENGTH=16\nKEYCHAIN_NUM
 
 - ```cargo run```
 
+### Authorization
+curl the /login route
+```
+curl -X POST "localhost:3000/login" \
+ -H "accept: application/json"\
+ -H "content-type: application/json" \
+ -d '{"email": "mace.windu@deepcore.com", "password": "mace.windu@deepcore.com"}'
+```
+
+extract the access token and add it to the HTTP HEADERS of the playground like this:
+```
+{
+  "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2IiwiZXhwIjoxNzI1ODczMDM5fQ.2pijrAlk9IyMXKQE-aazaKxF759cRvb3v2COco56sJc"
+}
+```
+
 ## How to test
 
 - ```cargo test```
+- If you have tested too much and want to clear your ephemeral sqlx test databases run (dk if it runs on windows too, also dc):
+  ```
+  psql -U postgres -d postgres -t -c "SELECT 'DROP DATABASE IF EXISTS ' || datname || ';' FROM pg_database WHERE datname LIKE '_sqlx_test_%';" | psql -U postgres -d postgres
+  ```

@@ -125,7 +125,7 @@ pub async fn login(
         _ => LoginError::DatabaseError,
     })?;
 
-    if !verify_password(&pool, &account.employee_id, password)
+    if !verify_password(password, &pool, &account.employee_id)
         .await
         .map_err(|_| LoginError::DatabaseError)?
     {

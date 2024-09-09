@@ -1,23 +1,24 @@
 use sqlx::PgPool;
 
-use crate::security::{create_salt, hash_password};
+use crate::{
+    models,
+    security::{create_salt, hash_password},
+};
 
-#[allow(dead_code)]
 pub async fn update_password(
+    new_password: String,
     pool: &PgPool,
     employee_id: &i32,
-    new_password: String,
-) -> sqlx::Result<()> {
+) -> sqlx::Result<models::Employee> {
     create_salt(pool, employee_id).await?;
 
-    let hashed_password = hash_password(pool, employee_id, new_password).await?;
-    let _ = sqlx::query!(
-        "UPDATE employee SET password = $2 WHERE employee_id = $1",
+    let hashed_password = hash_password(new_password, pool, employee_id).await?;
+    sqlx::query_as!(
+        models::Employee,
+        "UPDATE employee SET password = $2 WHERE employee_id = $1 RETURNING employee_id, firstname, lastname, email, weekly_time, address_id",
         employee_id,
         hashed_password,
     )
-    .execute(pool)
-    .await?;
-
-    Ok(())
+    .fetch_one(pool)
+    .await
 }
