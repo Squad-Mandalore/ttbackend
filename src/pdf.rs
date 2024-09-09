@@ -372,7 +372,7 @@ pub async fn generate_pdf(
     let month_time_work_text = format_minutes_as_time(month_time_work);
     let parts: Vec<&str> = month_time_work_text.split(':').collect();
     let formatted_text = format!("{}h {}m", parts[0], parts[1]);
-    current_layer.use_text(&formatted_text, 10.0, Mm(130.0), Mm(192.0), &font_bold);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(192.0), &font_bold);
 
     current_layer.use_text(
         "durchschnittliche Zeit pro Tag:",
@@ -716,7 +716,7 @@ fn add_new_page(
     let (new_page, new_layer) = doc.add_page(
         Mm(210.0),
         Mm(297.0),
-        &format!("Page {}, Layer 1", current_page),
+        format!("Page {}, Layer 1", current_page),
     );
     let current_layer = doc.get_page(new_page).get_layer(new_layer);
 
