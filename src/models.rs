@@ -54,3 +54,30 @@ pub struct Task {
     pub task_id: i32,
     pub task_description: Option<String>,
 }
+
+#[derive(async_graphql::SimpleObject)]
+#[graphql(complex)]
+pub struct Employee {
+    pub employee_id: i32,
+    pub firstname: Option<String>,
+    pub lastname: Option<String>,
+    pub email: String,
+    #[graphql(skip)]
+    pub weekly_time: Option<types::PgInterval>,
+    pub address_id: i32,
+}
+
+#[async_graphql::ComplexObject]
+impl Employee {
+    async fn weekly_time(&self) -> Option<String> {
+        match &self.weekly_time {
+            None => None,
+            Some(interval) => {
+                let months = interval.months;
+                let days = interval.days;
+                let seconds = interval.microseconds as f64 / 1_000_000_f64;
+                Some(format!("P{}M{}DT0H0M{}S", months, days, seconds))
+            }
+        }
+    }
+}

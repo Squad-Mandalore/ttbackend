@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS employee (
     lastname VARCHAR(64),
     password VARCHAR(64) NOT NULL,
     pw_salt VARCHAR(64),
-    email VARCHAR(64) UNIQUE,
+    email VARCHAR(64) UNIQUE NOT NULL,
     weekly_time INTERVAL,
-    address_id SERIAL
+    address_id SERIAL NOT NULL
 );

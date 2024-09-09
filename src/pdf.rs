@@ -213,7 +213,7 @@ pub async fn generate_pdf(
 
     let first_name = employee_info.firstname.unwrap_or(String::from(""));
     let last_name = employee_info.lastname.unwrap_or(String::from(""));
-    let email = employee_info.email.unwrap_or(String::from(""));
+    let email = employee_info.email;
     let used_schedule = get_month_times(&given_month, database_pool, employee_id).await?;
 
     let (doc, page1, layer1) =
