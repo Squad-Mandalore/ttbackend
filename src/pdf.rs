@@ -188,7 +188,7 @@ pub async fn generate_pdf(
 
     let first_name = employee_info.firstname.unwrap_or(String::from(""));
     let last_name = employee_info.lastname.unwrap_or(String::from(""));
-    let email = employee_info.email.unwrap_or(String::from(""));
+    let email = employee_info.email;
 
     let (doc, page1, layer1) =
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");

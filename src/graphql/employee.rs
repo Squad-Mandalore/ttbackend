@@ -1,4 +1,4 @@
-use crate::service::employee::update_password;
+use crate::{models, service::employee::update_password};
 
 pub struct EmployeeMutation;
 
@@ -8,12 +8,13 @@ impl EmployeeMutation {
         &self,
         ctx: &async_graphql::Context<'_>,
         new_password: String,
-    ) -> async_graphql::Result<String> {
+    ) -> async_graphql::Result<models::Employee> {
         let pool = ctx.data::<sqlx::PgPool>()?;
         let employee_id = ctx.data::<i32>()?;
 
-        update_password(new_password, pool, employee_id).await?;
-        Ok(String::from(""))
+        update_password(new_password, pool, employee_id)
+            .await
+            .map_err(async_graphql::Error::new_with_source)
     }
 }
 
