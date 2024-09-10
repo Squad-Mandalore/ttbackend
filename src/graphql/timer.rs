@@ -1,5 +1,6 @@
 use crate::{models, service::worktime};
 
+#[derive(Default)]
 pub struct Timer;
 
 #[async_graphql::Object]
@@ -71,12 +72,7 @@ impl Timer {
     }
 }
 
-impl Default for Timer {
-    fn default() -> Self {
-        Timer
-    }
-}
-
+#[derive(Default)]
 pub struct TimerMutation;
 
 #[async_graphql::Object]
@@ -121,11 +117,5 @@ impl TimerMutation {
         worktime::update_timer(worktime_id, task_id, start_time, end_time, worktype, pool)
             .await
             .map_err(async_graphql::Error::new_with_source)
-    }
-}
-
-impl Default for TimerMutation {
-    fn default() -> Self {
-        TimerMutation
     }
 }

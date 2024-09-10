@@ -1,5 +1,6 @@
 use crate::pdf::{generate_pdf, HeaderColor};
 
+#[derive(Default)]
 pub struct PDFQuery;
 
 #[async_graphql::Object]
@@ -16,11 +17,5 @@ impl PDFQuery {
         generate_pdf(month, header_color, pool, employee_id)
             .await
             .map_err(async_graphql::Error::new_with_source)
-    }
-}
-
-impl Default for PDFQuery {
-    fn default() -> Self {
-        PDFQuery
     }
 }

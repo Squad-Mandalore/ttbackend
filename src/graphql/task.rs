@@ -2,6 +2,7 @@ use async_graphql::Object;
 
 use crate::{models, service};
 
+#[derive(Default)]
 pub struct TaskQuery;
 
 #[Object]
@@ -30,12 +31,7 @@ impl TaskQuery {
     }
 }
 
-impl Default for TaskQuery {
-    fn default() -> Self {
-        TaskQuery
-    }
-}
-
+#[derive(Default)]
 pub struct TaskMutation;
 
 #[Object]
@@ -75,11 +71,5 @@ impl TaskMutation {
         service::task::delete_task(task_id, pool)
             .await
             .map_err(async_graphql::Error::new_with_source)
-    }
-}
-
-impl Default for TaskMutation {
-    fn default() -> Self {
-        TaskMutation
     }
 }
