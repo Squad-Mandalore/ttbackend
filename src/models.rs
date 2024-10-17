@@ -80,4 +80,16 @@ impl Employee {
             }
         }
     }
+
+    async fn initial_password(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> async_graphql::Result<bool> {
+        let pool = ctx.data::<sqlx::PgPool>()?;
+        let employee_id = ctx.data::<i32>()?;
+
+        service::employee::initial_password(employee_id, pool)
+            .await
+            .map_err(async_graphql::Error::new_with_source)
+    }
 }

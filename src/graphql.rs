@@ -8,7 +8,12 @@ mod task;
 mod timer;
 
 #[derive(MergedObject, Default)]
-pub struct Query(timer::Timer, task::TaskQuery, pdf::PDFQuery);
+pub struct Query(
+    timer::Timer,
+    task::TaskQuery,
+    pdf::PDFQuery,
+    employee::EmployeeQuery,
+);
 
 #[derive(MergedObject, Default)]
 pub struct Mutation(

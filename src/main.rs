@@ -1,12 +1,6 @@
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use axum::{
-    middleware,
-    response::{self, IntoResponse},
-    routing::{get, post},
-    Extension, Router,
-};
+use axum::{middleware, routing::post, Extension, Router};
 use sqlx::PgPool;
-use tower_http::{cors, services::ServeFile};
+use tower_http::cors;
 use ttbackend::{
     auth::{auth, login, refresh},
     database::set_up_database,
@@ -16,8 +10,9 @@ use ttbackend::{
 };
 
 #[cfg(debug_assertions)]
-async fn graphql_playground() -> impl IntoResponse {
-    response::Html(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
+async fn graphql_playground() -> impl axum::response::IntoResponse {
+    use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+    axum::response::Html(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
 }
 
 #[tokio::main]
@@ -31,18 +26,10 @@ async fn main() {
     let app = app(database_pool);
 
     #[cfg(debug_assertions)]
-    let debug = Router::new()
-        .route("/playground", get(graphql_playground))
-        .route_service("/docs", ServeFile::new("docs.html"))
-        .route_service("/api.yaml", ServeFile::new("api.yaml"));
-
-    #[cfg(debug_assertions)]
-    let app = app.nest("/debug", debug);
+    let app = debug_route(app);
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
@@ -71,6 +58,18 @@ fn app(database_pool: PgPool) -> Router {
         .route("/refresh", post(refresh))
         .with_state(database_pool)
         .layer(cors)
+}
+
+#[cfg(debug_assertions)]
+fn debug_route(app: Router) -> Router {
+    use axum::routing::get;
+    use tower_http::services::ServeFile;
+    let debug = Router::new()
+        .route("/playground", get(graphql_playground))
+        .route_service("/docs", ServeFile::new("docs.html"))
+        .route_service("/api.yaml", ServeFile::new("api.yaml"));
+
+    app.nest("/debug", debug)
 }
 
 #[cfg(test)]

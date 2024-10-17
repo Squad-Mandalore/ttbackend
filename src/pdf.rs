@@ -8,7 +8,6 @@ use printpdf::*;
 use sqlx::postgres::types::PgInterval;
 use sqlx::PgPool;
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::BufWriter;
 use std::io::Cursor;
 
@@ -220,13 +219,19 @@ pub async fn generate_pdf(
         PdfDocument::new("Zeiterfassungen", Mm(pdf_width), Mm(pdf_height), "Layer 1");
 
     let font_bold = doc
-        .add_external_font(File::open("fonts/ntn-Bold.ttf").context("cannot load bold font")?)
+        .add_external_font(std::io::Cursor::new(include_bytes!(
+            "../fonts/ntn-Bold.ttf"
+        )))
         .context("cannot apply bold font")?;
     let font_medium = doc
-        .add_external_font(File::open("fonts/ntn-Medium.ttf").context("cannot load medium font")?)
+        .add_external_font(std::io::Cursor::new(include_bytes!(
+            "../fonts/ntn-Medium.ttf"
+        )))
         .context("cannot apply medium font")?;
     let font_light = doc
-        .add_external_font(File::open("fonts/ntn-Light.ttf").context("cannot load light font")?)
+        .add_external_font(std::io::Cursor::new(include_bytes!(
+            "../fonts/ntn-Light.ttf"
+        )))
         .context("cannot apply light font")?;
 
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
@@ -372,7 +377,7 @@ pub async fn generate_pdf(
     let month_time_work_text = format_minutes_as_time(month_time_work);
     let parts: Vec<&str> = month_time_work_text.split(':').collect();
     let formatted_text = format!("{}h {}m", parts[0], parts[1]);
-    current_layer.use_text(&formatted_text, 10.0, Mm(130.0), Mm(192.0), &font_bold);
+    current_layer.use_text(formatted_text, 10.0, Mm(130.0), Mm(192.0), &font_bold);
 
     current_layer.use_text(
         "durchschnittliche Zeit pro Tag:",
@@ -716,7 +721,7 @@ fn add_new_page(
     let (new_page, new_layer) = doc.add_page(
         Mm(210.0),
         Mm(297.0),
-        &format!("Page {}, Layer 1", current_page),
+        format!("Page {}, Layer 1", current_page),
     );
     let current_layer = doc.get_page(new_page).get_layer(new_layer);
 
